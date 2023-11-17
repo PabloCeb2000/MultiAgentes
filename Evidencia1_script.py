@@ -370,75 +370,72 @@ nodos = {
     (20, 10): [(19, 10), (20, 11)],
     (20, 11): [(20, 10), (20, 11)],
     (20, 16): [(21, 16), (21, 17)],
-               (20, 17):[(21, 16), (21, 17)],
-               (20, 19): [(19,19)],
-               (20, 22): [(19, 22), (19, 23)],
-               (20, 23): [(19, 23), (19, 22)],
-
-               (21, 1): [(21, 0), (21, 1)],
-               (21, 4): [(22, 4)], #falta
-               (21, 5): [(22, 5)],
-               (21, 8): [(22, 8)], #falta
-               (21, 9): [(22, 9)],
-               (21, 10): [(20, 10), (20, 11)],
-               (21, 11): [(20, 10), (20, 11)],
-               (21, 14): [(22,14)],
-               (21, 16): [(22, 16)],
-               (21, 17): [(22, 17)],
-               (21, 22): [(20, 22), (20, 23)],
-               (21, 23): [(20, 22), (20, 23)],
-
-               (22, 0): [(23, 0), (23, 1)],
-               (22, 1): [(22, 2), (23, 1)],
-               (22, 2): [(22, 3), (23, 3)],
-               (22, 3): [(22, 4), (23, 4)],
-               (22, 4): [(21, 4)],
-               (22, 5): [(21, 5)],
-               (22, 6): [(22, 7), (23, 7)],
-               (22, 7): [(22, 8), (23, 8)],
-               (22, 8): [(22, 9), (23, 9)],
-               (22, 9): [(22, 10), (23, 10)],
-               (22, 10): [(21, 10)], #
-               (22, 11): [(21, 11)],
-               
-               (22, 12): [(22, 13), (23, 13)],
-               (22, 13): [(22, 14), (23, 14)],
-               (22, 14): [(22, 15), (23, 15),(21,14)],
-               (22, 15): [(22, 16), (23, 16)],
-               (22, 16): [(22, 17), (23, 17)],
-               (22, 17): [(22, 18), (23, 18)],
-               (22, 18): [(22, 19), (23, 19)],
-               (22, 19): [(22, 20), (23, 20)],
-               (22, 20): [(22, 21), (23, 21)],
-               (22, 21): [(22, 22), (23, 22)],
-
-               (22, 22): [(21, 22), (21, 23)],
-               (22, 23): [(21, 23)],
-
-               (23, 0): [(23, 1)],
-               (23, 1): [(23, 2)],
-               (23, 2): [(23, 3)],
-               (23, 3): [(23, 4)],
-               (23, 4): [(23, 5)],
-               (23, 5): [(23, 6)],
-               (23, 6): [(23, 7)],
-               (23, 7): [(23, 8)],
-               (23, 8): [(23, 9)],
-               (23, 9): [(23, 10)],
-               (23, 10): [(23, 1)],
-               (23, 11): [(23, 1), (22, 11)],
-               (23, 12): [(23, 13)],
-               (23, 13): [(23, 14)],
-               (23, 14): [(23, 15)],
-               (23, 15): [(23, 16)],
-               (23, 16): [(23, 17)],
-               (23, 17): [(23, 18)],
-               (23, 18): [(23, 19)],
-               (23, 19): [(23, 20)],
-               (23, 20): [(23, 21)],
-               (23, 21): [(23, 22), (22, 21)],
-               (23, 22): [(23, 23), (22, 22)],
-               (23, 23): [(22, 23)]
+    (20, 17): [(20, 16), (21, 17)],
+    (20, 22): [(19, 22), (20, 23)],
+    (20, 23): [(19, 23), (20, 22)],
+    #########
+    (21, 0): [(21, 1), (22, 0)],
+    (21, 1): [(21, 0), (22, 1)],
+    (21, 4): [(20, 4), (21, 5)], 
+    (21, 5): [(20, 5), (21, 4)],
+    (21, 8): [(22, 8), (21, 9)], 
+    (21, 9): [(22, 9), (21, 8)],
+    (21, 10): [(20, 10), (21, 11)],
+    (21, 11): [(20, 11), (21, 10)],
+    (21, 16): [(22, 16), (21, 17)],
+    (21, 17): [(22, 17), (21, 16)],
+    (21, 22): [(20, 22), (20, 23)],
+    (21, 23): [(21, 22), (20, 23)],
+    #########
+    (22, 0): [(23, 0), (22, 1)],
+    (22, 1): [(23, 1), (22, 2)],
+    (22, 2): [(23, 2), (22, 3)],
+    (22, 3): [(23, 3), (22, 4)],
+    (22, 4): [(23, 4), (22, 5), (21, 4)],
+    (22, 5): [(23, 5), (22, 6), (21, 5)],
+    (22, 6): [(23, 6), (22, 7)],
+    (22, 7): [(23, 7), (22, 8)],
+    (22, 8): [(23, 8), (22, 9)],
+    (22, 9): [(23, 9), (22, 10)],
+    (22, 10): [(23, 10), (22, 11), (21, 10)],
+    (22, 11): [(23, 11), (22, 12), (21, 11)],
+    (22, 12): [(23, 12), (22, 13)],
+    (22, 13): [(23, 13), (22, 14)],
+    (22, 14): [(23, 14), (22, 15),(21,14)],
+    (22, 15): [(23, 15), (22, 16)],
+    (22, 16): [(23, 16), (22, 17)],
+    (22, 17): [(23, 17), (22, 18)],
+    (22, 18): [(23, 18), (22, 19)],
+    (22, 19): [(23, 19), (22, 20)],
+    (22, 20): [(23, 20), (22, 21)],
+    (22, 21): [(23, 21), (22, 22)],
+    (22, 22): [(23, 22), (22, 23), (21, 22)],
+    (22, 23): [(21, 23), (22, 22)],
+    #########
+    (23, 0): [(23, 1)],
+    (23, 1): [(23, 2)],
+    (23, 2): [(23, 3), (22, 2)],
+    (23, 3): [(23, 4), (22, 3)],
+    (23, 4): [(23, 5), (22, 4)],
+    (23, 5): [(23, 6), (22, 5)],
+    (23, 6): [(23, 7), (22, 6)],
+    (23, 7): [(23, 8), (22, 7)],
+    (23, 8): [(23, 9), (22, 8)],
+    (23, 9): [(23, 10), (22, 9)],
+    (23, 10): [(23, 11), (22, 10)],
+    (23, 11): [(23, 12), (22, 11)],
+    (23, 12): [(23, 13), (22, 12)],
+    (23, 13): [(23, 14), (22, 13)],
+    (23, 14): [(23, 15), (22, 14)],
+    (23, 15): [(23, 16), (22, 15)],
+    (23, 16): [(23, 17), (22, 16)],
+    (23, 17): [(23, 18), (22, 17)],
+    (23, 18): [(23, 19), (22, 18)],
+    (23, 19): [(23, 20), (22, 19)],
+    (23, 20): [(23, 21), (22, 20)],
+    (23, 21): [(23, 22), (22, 21)],
+    (23, 22): [(23, 23), (22, 22)],
+    (23, 23): [(22, 23)]
 }
 
 p_iniciales = [(9, 22), (1, 20),
@@ -468,6 +465,27 @@ for nodo, adyacentes in nodos.items():
     for adyacente in adyacentes:
         Grafo.add_edge(nodo, adyacente, costo = 1.0)
 
+def pasos_autos(model):
+    pasos = []
+    Autos = []
+
+    for agent in model.schedule.agents:
+        if isinstance(agent, AgenteAuto):
+            Autos.append(agent)
+
+    
+    for auto in Autos:
+        pasos.append(auto.paso)
+    
+
+    #pasos.append(Autos[m].paso)
+
+
+    #print(pasos)
+    return pasos
+            
+    
+
 class AgenteEdificio(mesa.Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
@@ -480,12 +498,14 @@ class AgenteSemaforoV(mesa.Agent):
         self.cambio = 0
 
     def step(self):
+        
         if self.cambio % 10 == 0:
             self.val = 2
         else:
             self.val = 1
 
         self.cambio += 1
+        
 
 class AgenteSemaforoR(mesa.Agent):
     def __init__(self, unique_id, model):
@@ -494,12 +514,14 @@ class AgenteSemaforoR(mesa.Agent):
         self.cambio = 0
 
     def step(self):
+        
         if self.cambio % 10 == 0:
             self.val = 1
         else:
             self.val = 2
 
         self.cambio += 1
+        
 
 class AgenteGlorieta(mesa.Agent):
     def __init__(self, unique_id, model):
@@ -519,17 +541,36 @@ class AgenteAuto(mesa.Agent):
         self.pos_final = pos_final
         self.graf = Grafoo
         self.contador = 0
+        self.paso = 0
+        self.llegado = 0
 
         self.ruta = nx.shortest_path(self.graf, self.pos_inicial, self.pos_final)
-        print(self.ruta)
 
     def move(self, c):
+        next_position = self.ruta[c]
+
+        cellmates = self.model.grid.get_cell_list_contents([next_position])
+
+        for agent in cellmates:
+            if isinstance(agent, AgenteSemaforoR or AgenteSemaforoR) and agent.val == 2:
+                self.contador - 1
+                return  
+
         self.model.grid.move_agent(self, self.ruta[c])
 
     def step(self):
         c = self.contador
-        self.move(c)
+
+        if len(self.ruta) > c:
+            self.move(c)
+            self.paso += 1
+
         self.contador += 1
+        
+
+        if self.pos == self.pos_final:
+            self.llegado = 1
+
 
 
 
@@ -625,7 +666,7 @@ class CalleModel(mesa.Model):
             n_j = 0
             n_i += 1
 
-        for i in range(1):
+        for i in range(4):
             i = R + 1 + i
             p_inicial = random.choice(p_iniciales)
             p_final = random.choice(p_finales)
@@ -639,8 +680,44 @@ class CalleModel(mesa.Model):
             self.grid.place_agent(c, (x, y))
 
 
+        self.datacollector = mesa.DataCollector( 
+            model_reporters={"Auto1": pasos_autos},
+            #model_reporters={"Auto_1": pasos_autos(self, 0), "Auto_2": pasos_autos(self, 1),  "Auto_3": pasos_autos(self, 2),  "Auto_4": pasos_autos(self, 3)},
+        )
+            
+    def get_agent_position(self):
+        id_pos = []
+        for agent in self.schedule.agents:
+            if isinstance(agent, AgenteAuto):
+                x = {
+                    "id": agent.unique_id,
+                    "pos": agent.pos
+                }
+                id_pos.append(x)
+                
+        return id_pos
+    
+    
+
+
     def step(self):
+        total_llegado = 0
+        for agent in self.schedule.agents:
+            if isinstance(agent, AgenteAuto):
+                if agent.llegado == 1:
+                    total_llegado += 1        
+
         self.schedule.step()
+        self.datacollector.collect(self)
+        pasos_autos(self)
+
+        if total_llegado == 4:
+            self.running = False
+            #pasos_autos(self)
+        
+
+
+        
 
 
 
