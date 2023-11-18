@@ -494,7 +494,7 @@ class AgenteSemaforoV(mesa.Agent):
         self.Rojo = False
 
     def step(self):
-        if self.cambio % 20 == 0:
+        if self.cambio % 2 == 0:
             if (self.val == 2):
                 self.val = 1
             elif (self.val == 1):
@@ -512,7 +512,7 @@ class AgenteSemaforoR(mesa.Agent):
         self.Rojo = True
 
     def step(self):
-        if self.cambio % 20 == 0:
+        if self.cambio % 2 == 0:
             if (self.val == 1):
                 self.val = 2
             elif (self.val == 2):
@@ -543,17 +543,15 @@ class AgenteAuto(mesa.Agent):
         self.paso = 0
         self.llegado = 0
 
-        self.ruta = nx.shortest_path(self.graf, self.pos_inicial, self.pos_final)
+        self.ruta = nx.shortest_path(self.graf, self.pos_inicial, self.pos_final, method= 'bellman-ford')
+        self.ruta2 = nx.shortest_path(self.graf, self.pos_inicial, self.pos_final, method= 'bellman-ford')
+
 
     def move(self, c):
-        next_position = self.ruta[c]
+        next_position = self.ruta2[c]
 
         cellmates = self.model.grid.get_cell_list_contents([next_position])
 
-        if len(cellmates) > 1:
-                if isinstance(cellmates[0], AgenteAuto):
-                    self.contador -= 1
-                    return
 
         for agent in cellmates:
             if isinstance(agent, AgenteSemaforoR) and agent.val == 2:
@@ -562,15 +560,20 @@ class AgenteAuto(mesa.Agent):
             if isinstance(agent, AgenteSemaforoV) and agent.val == 2:
                 self.contador -= 1
                 return
+            
+        if len(cellmates) > 1:
+                if isinstance(cellmates[0], AgenteAuto):
+                    self.contador -= 1
+                    return
 
 
 
-        self.model.grid.move_agent(self, self.ruta[c])
+        self.model.grid.move_agent(self, self.ruta2[c])
 
     def step(self):
         c = self.contador
 
-        if len(self.ruta) > c:
+        if len(self.ruta2) > c:
             self.move(c)
             self.paso += 1
 

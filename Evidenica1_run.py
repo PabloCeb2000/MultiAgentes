@@ -12,7 +12,7 @@ def batch():
         CalleModel,
         parameters=paramas,
         iterations=70,
-        max_steps=100,
+        max_steps=500,
         number_processes=1,
         data_collection_period=1,
         display_progress=True,
@@ -54,6 +54,7 @@ def batch():
         ax.text(i, v + 0.5, str(round(v, 2)), ha='center', va='bottom')
 
     plt.show()
+
 
 
 def agent_portrayal(agent):
