@@ -477,11 +477,6 @@ def pasos_autos(model):
     for auto in Autos:
         pasos.append(auto.paso)
     
-
-    #pasos.append(Autos[m].paso)
-
-
-    #print(pasos)
     return pasos
             
     
@@ -496,15 +491,17 @@ class AgenteSemaforoV(mesa.Agent):
         super().__init__(unique_id, model)
         self.val = 1
         self.cambio = 0
+        self.Rojo = False
 
     def step(self):
-        
-        if self.cambio % 10 == 0:
-            self.val = 2
-        else:
-            self.val = 1
+        if self.cambio % 20 == 0:
+            if (self.val == 2):
+                self.val = 1
+            elif (self.val == 1):
+                self.val = 2
 
         self.cambio += 1
+        
         
 
 class AgenteSemaforoR(mesa.Agent):
@@ -512,15 +509,17 @@ class AgenteSemaforoR(mesa.Agent):
         super().__init__(unique_id, model)
         self.val = 2
         self.cambio = 0
+        self.Rojo = True
 
     def step(self):
-        
-        if self.cambio % 10 == 0:
-            self.val = 1
-        else:
-            self.val = 2
+        if self.cambio % 20 == 0:
+            if (self.val == 1):
+                self.val = 2
+            elif (self.val == 2):
+                self.val = 1
 
         self.cambio += 1
+        
         
 
 class AgenteGlorieta(mesa.Agent):
@@ -551,10 +550,20 @@ class AgenteAuto(mesa.Agent):
 
         cellmates = self.model.grid.get_cell_list_contents([next_position])
 
+        if len(cellmates) > 1:
+                if isinstance(cellmates[0], AgenteAuto):
+                    self.contador -= 1
+                    return
+
         for agent in cellmates:
-            if isinstance(agent, AgenteSemaforoR or AgenteSemaforoR) and agent.val == 2:
-                self.contador - 1
+            if isinstance(agent, AgenteSemaforoR) and agent.val == 2:
+                self.contador -= 1
                 return  
+            if isinstance(agent, AgenteSemaforoV) and agent.val == 2:
+                self.contador -= 1
+                return
+
+
 
         self.model.grid.move_agent(self, self.ruta[c])
 
@@ -579,6 +588,7 @@ class CalleModel(mesa.Model):
         self.schedule = mesa.time.RandomActivation(self)
         self.grid = mesa.space.MultiGrid(width, height, True)
         self.running = True
+        self.m = 0
         R = 0
 
         mapa_2 = [[' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '&', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
@@ -666,23 +676,29 @@ class CalleModel(mesa.Model):
             n_j = 0
             n_i += 1
 
-        for i in range(4):
-            i = R + 1 + i
+
+        posiciones_pasadas = []
+        for i in range(4):        
             p_inicial = random.choice(p_iniciales)
             p_final = random.choice(p_finales)
+            j = R + 1 + i
 
-            c = AgenteAuto(i, self, p_inicial, p_final, Grafo)
-            self.schedule.add(c)
+            while p_inicial in posiciones_pasadas:
+                p_inicial = random.choice(p_iniciales)
+
             
+            c = AgenteAuto(j, self, p_inicial, p_final, Grafo)
+            self.schedule.add(c)
+                
             x = p_inicial[0]
             y = p_inicial[1]
 
             self.grid.place_agent(c, (x, y))
 
+            posiciones_pasadas.append(p_inicial)
 
         self.datacollector = mesa.DataCollector( 
-            model_reporters={"Auto1": pasos_autos},
-            #model_reporters={"Auto_1": pasos_autos(self, 0), "Auto_2": pasos_autos(self, 1),  "Auto_3": pasos_autos(self, 2),  "Auto_4": pasos_autos(self, 3)},
+            model_reporters={"Autos": pasos_autos},
         )
             
     def get_agent_position(self):
@@ -709,11 +725,10 @@ class CalleModel(mesa.Model):
 
         self.schedule.step()
         self.datacollector.collect(self)
-        pasos_autos(self)
+
 
         if total_llegado == 4:
             self.running = False
-            #pasos_autos(self)
         
 
 

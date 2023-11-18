@@ -22,8 +22,10 @@ def run_simulation():
     #all_positions.append(model.get_agent_positions())
     positions = {
         "agentes": model.get_agent_position()
+        #"semaforos": 
     }
     return json.dumps(positions)
+
 
 @app.route('/agent')
 def agent():

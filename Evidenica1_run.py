@@ -11,7 +11,7 @@ def batch():
     results = mesa.batch_run(
         CalleModel,
         parameters=paramas,
-        iterations=10,
+        iterations=70,
         max_steps=100,
         number_processes=1,
         data_collection_period=1,
@@ -19,7 +19,42 @@ def batch():
     )
 
     results_df = pd.DataFrame(results)
-    #results_df.to_excel("output_E6.xlsx") 
+
+    results_df = results_df.drop('width', axis=1)
+    results_df = results_df.drop('height', axis=1)
+    results_df = results_df.drop('RunId', axis=1)
+
+    print(results_df)
+
+    pasos_auto = results_df['Autos'].apply(lambda x: pd.Series(x)).add_prefix('Auto_')
+
+    result_df_2 = pd.concat([results_df, pasos_auto], axis=1)
+
+    result_df_2 = result_df_2.drop('Autos', axis=1)
+
+    print(result_df_2)
+
+    result_df_2_np = result_df_2.drop_duplicates('iteration', keep='last')
+    print(result_df_2_np)
+
+    columas_promedio = ['Auto_0', 'Auto_1', 'Auto_2', 'Auto_3']
+    total = ['Step']
+    promedio_pasos_coche = result_df_2_np[columas_promedio].mean()
+    promedio_total = result_df_2_np[total].mean()
+
+    ax = promedio_pasos_coche.plot(kind='bar', rot=0, ylabel='Pasos Totales', xlabel='Autos', title='Promedio de Pasos por Agente', ylim=(0, 100), color = "red")
+    ax.set_xticklabels(promedio_pasos_coche.index, rotation=0)
+    for i, v in enumerate(promedio_pasos_coche):
+        ax.text(i, v + 0.5, str(round(v, 2)), ha='center', va='bottom')
+    plt.show()
+
+    ax = promedio_total.plot(kind='bar', rot=0, ylabel='Pasos Totales', xlabel='Autos', title='Promedio de Pasos Totales', ylim=(0, 100), color = "blue")
+    ax.set_xticklabels(promedio_total.index, rotation=0)
+    for i, v in enumerate(promedio_total):
+        ax.text(i, v + 0.5, str(round(v, 2)), ha='center', va='bottom')
+
+    plt.show()
+
 
 def agent_portrayal(agent):
 
