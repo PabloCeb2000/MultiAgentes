@@ -326,7 +326,7 @@ nodos = {
     (18, 8): [(19, 8), (18, 9)],
     (18, 9): [(19, 9), (18, 8)],
     (18, 10): [(17, 10), (18, 11)],
-    (18, 11): [(17, 11), (18, 10)],
+    (18, 11): [(18, 10), (17, 11)],
     (18, 12): [(18, 13), (19, 12)],
     (18, 13): [(18, 14), (19, 13)],
     (18, 14): [(18, 15), (19, 14)],
@@ -347,7 +347,7 @@ nodos = {
     (19, 8): [(19, 9), (20, 8)],
     (19, 9): [(20, 9), (19, 8)],
     (19, 10): [(20, 10), (19, 11)],
-    (19, 11): [(20, 11), (19, 10)],
+    (19, 11): [(18, 11), (20, 11), (19, 10)],
     (19, 12): [(19, 13), (18, 12)],
     (19, 13): [(19, 14), (18, 13)],
     (19, 14): [(19, 15), (18, 14)],
@@ -368,7 +368,7 @@ nodos = {
     (20, 8): [(21, 8), (20, 9)],  
     (20, 9): [(19, 9), (20, 10)],
     (20, 10): [(19, 10), (20, 11)],
-    (20, 11): [(20, 10), (20, 11)],
+    (20, 11): [(19, 11), (20, 10), (20, 11)],
     (20, 16): [(21, 16), (21, 17)],
     (20, 17): [(20, 16), (21, 17)],
     (20, 22): [(19, 22), (20, 23)],
@@ -459,6 +459,13 @@ p_finales = [(9, 21), (2, 20),
             (5, 3), (8, 3),
             (19, 3)]
 
+p_iniciales_norte = [(12, 21), (12, 20),
+                     (12, 19), (12, 18),
+                     (12, 17), (12, 16)]
+
+p_iniciales_este = [(23, 11), (22, 11),
+                    (21, 11), (20, 11)]
+
 Grafo = nx.DiGraph()
 for nodo, adyacentes in nodos.items():
     Grafo.add_node(nodo)
@@ -485,86 +492,109 @@ class AgenteEdificio(mesa.Agent):
     def __init__(self, unique_id, model):
         super().__init__(unique_id, model)
         self.val = 0
-
-class AgenteSemaforoV(mesa.Agent):
-    def __init__(self, unique_id, model):
-        super().__init__(unique_id, model)
-        self.val = 6
-        self.cambio = 0
-        self.fulminado = False
-        self.fulminante = False
-        
-
-    def cambios(self):
-        alrededor = self.model.grid.get_neighbors(
-            self.pos, moore = True, include_center = False, radius = 3
-        )
-               
-        for agent in alrededor:
-            if isinstance(agent, AgenteAuto):
-                self.fulminante = True
-                return
-            if not isinstance(agent, AgenteAuto):
-                self.fulminante = False
-                return
-
-    def step(self):
-        self.cambios()
-
-        if self.fulminado == True:
-            self.val = 1
-            if self.cambio % 2 == 0:
-                if (self.val == 2):
-                    self.val = 1
-                elif (self.val == 1):
-                    self.val = 2
-
-            self.cambio += 1
-
-        if self.fulminado == False:
-            self.val = 6
         
         
 
 class AgenteSemaforoR(mesa.Agent):
-    def __init__(self, unique_id, model):
+    def __init__(self, unique_id, model, orient):
         super().__init__(unique_id, model)
         self.val = 6
         self.cambio = 0
-        self.fulminado = False
-        self.fulminante = False
+        self.color = "Amarillo"
+        self.orientacion = orient
 
 
-    def cambios(self):
-        alrededor = self.model.grid.get_neighbors(
-            self.pos, moore = True, include_center = False, radius = 3
-        )
+    def deteccion(self):
+        x, y = self.pos
+        cedas = []
+        celdas_centrales = []
 
-        for agent in alrededor:
-            if isinstance(agent, AgenteAuto):
-                self.fulminante = True
-                return
-            if not isinstance(agent, AgenteAuto):
-                self.fulminante = False
-                return
+        if self.orientacion == "Norte":
+            y1 = y + 1
+            y2 = y + 2
+            y3 = y + 3
+            y4 = y - 1
+            y5 = y - 2
+            y6 = y - 3
+            y7 = y
+            y8 = y - 4
+            cedas.append((x, y1))
+            cedas.append((x, y2))
+            cedas.append((x, y3))
+            
+            cedas.append((x, y4))
+            cedas.append((x, y5))
+            cedas.append((x, y6))
+            cedas.append((x, y7))
+            cedas.append((x, y8))
+            
+        if self.orientacion == "Este":
+            x1 = x + 1
+            x2 = x + 2
+            x3 = x + 3
+            x4 = x - 1
+            x5 = x - 2
+            x6 = x - 3
+            x7 = x
+            cedas.append((x1, y))
+            cedas.append((x2, y))
+            cedas.append((x3, y))
+            
+            cedas.append((x4, y))
+            cedas.append((x5, y))
+            cedas.append((x6, y))
+            cedas.append((x7, y))
+            
+        if self.orientacion == "Oeste":
+            x1 = x - 1
+            x2 = x - 2
+            x3 = x - 3
+            x4 = x
+            x5 = x + 1
+            x6 = x + 2
+            x7 = x + 3
+            cedas.append((x1, y))
+            cedas.append((x2, y))
+            cedas.append((x3, y))
+            
+            cedas.append((x4, y))
+            cedas.append((x5, y))
+            cedas.append((x6, y))
+            cedas.append((x7, y))
+            
+        if self.orientacion == "Sur":
+            y1 = y - 1
+            y2 = y - 2
+            y3 = y - 3
+            y4 = y
+            y5 = y + 1
+            y6 = y + 2
+            y7 = y + 3
+            cedas.append((x, y1))
+            cedas.append((x, y2))
+            cedas.append((x, y3))
+            
+            cedas.append((x, y4))
+            cedas.append((x, y5))
+            cedas.append((x, y6))
+            cedas.append((x, y7))
+            
 
+        for cell in cedas: 
+            cell_content = self.model.grid.get_cell_list_contents([cell])
+            for agent in cell_content:
+                if isinstance(agent, AgenteAuto):
+                    return True    
+        return False
+            
     def step(self):
-
-        self.cambios()
-
-        if self.fulminado == True:
+        if self.color == "Verde":
+            self.val = 1
+        if self.color == "Rojo":
             self.val = 2
-
-            if self.cambio % 2 == 0:
-                if (self.val == 1):
-                    self.val = 2
-                elif (self.val == 2):
-                    self.val = 1
-
-            self.cambio += 1
-
-        if self.fulminado == False:
+        if self.color == "Yellow":
             self.val = 6
+
 
         
 class AgenteGlorieta(mesa.Agent):
@@ -601,9 +631,7 @@ class AgenteAuto(mesa.Agent):
             if isinstance(agent, AgenteSemaforoR) and agent.val == 2:
                 self.contador -= 1
                 return  
-            if isinstance(agent, AgenteSemaforoV) and agent.val == 2:
-                self.contador -= 1
-                return
+
             
         if len(cellmates) > 1:
                 if isinstance(cellmates[0], AgenteAuto):
@@ -638,30 +666,30 @@ class SemaforoModel(mesa.Model):
         self.m = 0
         R = 0
 
-        mapa_2 = [[' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '&', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-                  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '&', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-                  [' ', ' ', '#', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', '/', '/', ' ', ' ', '#', '#', '#', '#', '#', '#', ' ', ' '],
-                  [' ', ' ', '#', '#', '#', '$', ' ', ' ', '$', '#', '#', '#', ' ', ' ', '/', '/', '#', '#', '#', '$', '#', '#', ' ', ' '],
-                  [' ', ' ', '#', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', ' ', ' ', ' ', ' ', '&', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-                  [' ', ' ', '#', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', ' ', ' ', ' ', ' ', '&', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+        mapa_2 = [[' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+                  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+                  [' ', ' ', '#', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', ' ', ' ', ' ', ' ', '#', '#', '#', '#', '#', '#', ' ', ' '],
+                  [' ', ' ', '#', '#', '#', '$', ' ', ' ', '$', '#', '#', '#', ' ', ' ', ' ', ' ', '#', '#', '#', '$', '#', '#', ' ', ' '],
+                  [' ', ' ', '#', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+                  [' ', ' ', '#', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
                   [' ', ' ', '$', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', ' ', ' ', ' ', ' ', '#', '$', '#', '$', '#', '#', ' ', ' '],
-                  [' ', ' ', '#', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', ' ', ' ', ' ', ' ', '#', '#', '#', '#', '#', '#', '/', '/'],
-                  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '&', ' ', ' '],
-                  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '%', '%', ' ', ' ', ' ', ' ', ' ', ' ', '&', ' ', ' '],
-                  [' ', ' ', '&', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '%', '%', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-                  [' ', ' ', '&', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-                  ['/', '/', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', '#', ' ', ' ', ' ', ' ', '#', '#', ' ', ' ', '#', '#', ' ', ' '],
+                  [' ', ' ', '#', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', ' ', ' ', 'S', 'S', '#', '#', '#', '#', '#', '#', ' ', ' '],
+                  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'O', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+                  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'O', ' ', '%', '%', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+                  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '%', '%', ' ', 'E', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+                  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'E', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+                  [' ', ' ', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', '#', 'N', 'N', ' ', ' ', '#', '#', ' ', ' ', '#', '#', ' ', ' '],
                   [' ', ' ', '#', '#', '$', ' ', ' ', '#', '#', '#', '#', '$', ' ', ' ', ' ', ' ', '$', '#', ' ', ' ', '#', '#', ' ', ' '],
                   [' ', ' ', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', '#', ' ', ' ', ' ', ' ', '#', '#', ' ', ' ', '#', '$', ' ', ' '],
-                  [' ', ' ', '#', '#', '#', '/', '/', '#', '$', '#', '#', '#', ' ', ' ', ' ', ' ', '#', '#', ' ', ' ', '#', '#', ' ', ' '],
-                  [' ', ' ', ' ', ' ', ' ', ' ', ' ', '&', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-                  [' ', ' ', ' ', ' ', ' ', ' ', ' ', '&', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],              
+                  [' ', ' ', '#', '#', '#', ' ', ' ', '#', '$', '#', '#', '#', ' ', ' ', ' ', ' ', '#', '#', ' ', ' ', '#', '#', ' ', ' '],
+                  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+                  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],              
                   [' ', ' ', '#', '#', '#', '#', '$', '#', '#', '#', '#', '#', ' ', ' ', ' ', ' ', '#', '#', ' ', ' ', '#', '#', ' ', ' '],
                   [' ', ' ', '#', '#', '#', '#', '#', '#', '#', '#', '#', '$', ' ', ' ', ' ', ' ', '#', '#', ' ', ' ', '$', '#', ' ', ' '],
                   [' ', ' ', '$', '#', '#', '#', '#', '#', '#', '#', '#', '#', ' ', ' ', ' ', ' ', '#', '$', ' ', ' ', '#', '#', ' ', ' '],
-                  [' ', ' ', '#', '#', '#', '#', '#', '#', '#', '$', '#', '#', ' ', ' ', '/', '/', '#', '#', ' ', ' ', '#', '#', ' ', ' '],
-                  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '&', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-                  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '&', ' ', ' ', ' ', ' ', ' ', ' ', ' ']]
+                  [' ', ' ', '#', '#', '#', '#', '#', '#', '#', '$', '#', '#', ' ', ' ', ' ', ' ', '#', '#', ' ', ' ', '#', '#', ' ', ' '],
+                  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+                  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ']]
         
         n_i = 0
         n_j = 0
@@ -678,22 +706,43 @@ class SemaforoModel(mesa.Model):
 
                     R += 1
 
-                if j == '&':
-                    r = AgenteSemaforoV(R, self)
+                if j == 'N':
+                    r = AgenteSemaforoR(R, self, "Norte")
                     self.schedule.add(r)
 
                     x = n_j 
                     y = n_i
+
                     self.grid.place_agent(r, (x, y))
 
                     R += 1
-
-                if j == '/':
-                    r = AgenteSemaforoR(R, self)
+                if j == 'S':
+                    r = AgenteSemaforoR(R, self, "Sur")
                     self.schedule.add(r)
 
                     x = n_j 
                     y = n_i
+
+                    self.grid.place_agent(r, (x, y))
+
+                    R += 1
+                if j == 'E':
+                    r = AgenteSemaforoR(R, self, "Este")
+                    self.schedule.add(r)
+
+                    x = n_j 
+                    y = n_i
+
+                    self.grid.place_agent(r, (x, y))
+
+                    R += 1
+                if j == 'O':
+                    r = AgenteSemaforoR(R, self, "Oeste")
+                    self.schedule.add(r)
+
+                    x = n_j 
+                    y = n_i
+
                     self.grid.place_agent(r, (x, y))
 
                     R += 1
@@ -724,16 +773,18 @@ class SemaforoModel(mesa.Model):
             n_i += 1
 
 
-        posiciones_pasadas = []
+        posiciones_pasadas_i = []
+        posiciones_pasadas_f = []
+
         for i in range(2):        
-            p_inicial = random.choice(p_iniciales)
-            p_final = random.choice(p_finales)
+            p_inicial = random.choice(p_iniciales_norte)
+            p_final = (12, 0)
             j = R + 1 + i
 
-            while p_inicial in posiciones_pasadas:
-                p_inicial = random.choice(p_iniciales)
+            while p_inicial in posiciones_pasadas_i:
+                p_inicial = random.choice(p_iniciales_norte)
 
-            
+                
             c = AgenteAuto(j, self, p_inicial, p_final, Grafo)
             self.schedule.add(c)
                 
@@ -742,7 +793,28 @@ class SemaforoModel(mesa.Model):
 
             self.grid.place_agent(c, (x, y))
 
-            posiciones_pasadas.append(p_inicial)
+            posiciones_pasadas_i.append(p_inicial)
+
+        R += 3
+
+        for i in range(1):        
+            p_inicial = random.choice(p_iniciales_este)
+            p_final = (0, 11)
+            j = R + 1 + i
+
+            while p_inicial in posiciones_pasadas_i:
+                p_inicial = random.choice(p_iniciales_este)
+
+                
+            c = AgenteAuto(j, self, p_inicial, p_final, Grafo)
+            self.schedule.add(c)
+                
+            x = p_inicial[0]
+            y = p_inicial[1]
+
+            self.grid.place_agent(c, (x, y))
+
+            posiciones_pasadas_i.append(p_inicial)
 
         self.datacollector = mesa.DataCollector( 
             model_reporters={"Autos": pasos_autos},
@@ -760,27 +832,70 @@ class SemaforoModel(mesa.Model):
                 
         return id_pos
     
+    def Vacios(self):
+        for agent in self.schedule.agents:
+            if isinstance(agent, AgenteSemaforoR):
+                if agent.deteccion() == True:
+                    return False
+                
+        return True
+            
     
 
 
     def step(self):
         total_llegado = 0
+        self.counttt = 0
+        self.primero = True
 
         for agent in self.schedule.agents:
             if isinstance(agent, AgenteAuto):
                 if agent.llegado == 1:
                     total_llegado += 1       
 
-            if isinstance(agent, (AgenteSemaforoV, AgenteSemaforoR)):
-                if agent.fulminante == True:
+            if isinstance(agent, (AgenteSemaforoR)):
+                if agent.deteccion() == True and self.primero == True and (agent.orientacion == "Norte" or agent.orientacion == "Sur"):
+                    self.primero = False
                     for agent in self.schedule.agents:
-                        agent.fulminado = True
+                        if isinstance(agent, AgenteSemaforoR) and (agent.orientacion == "Norte" or agent.orientacion == "Sur"):
+                            agent.color = "Verde"
+                        else:
+                            agent.color = "Rojo"
+
+                        if isinstance(agent, AgenteSemaforoR) and (agent.orientacion == "Oeste" or agent.orientacion == "Este"):
+                            agent.color = "Rojo"
+                        else:
+                            agent.color = "Verde"
+
+                elif agent.deteccion() == True and self.primero == True  and (agent.orientacion == "Este" or agent.orientacion == "Oeste"):
+                    self.primero = False
+                    for agent in self.schedule.agents:
+                        if isinstance(agent, AgenteSemaforoR) and (agent.orientacion == "Este" or agent.orientacion == "Oeste"):
+                            agent.color = "Verde"
+                        else:
+                            agent.color = "Rojo"
+
+                        if isinstance(agent, AgenteSemaforoR) and (agent.orientacion == "Norte" or agent.orientacion == "Sur"):
+                            agent.color = "Rojo"
+                        else:
+                            agent.color = "Verde"
+                else:
+                    if self.Vacios() == True:
+                        for agent in self.schedule.agents:
+                            if isinstance(agent, AgenteSemaforoR) and self.counttt == 4:
+                                agent.color = "Yellow"
+
+                    self.counttt +=1
+
+
+
 
 
 
 
         self.schedule.step()
         self.datacollector.collect(self)
+        
 
 
         """if total_llegado == 0:
