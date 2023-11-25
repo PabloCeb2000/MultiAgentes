@@ -459,12 +459,21 @@ p_finales = [(9, 21), (2, 20),
             (5, 3), (8, 3),
             (19, 3)]
 
-p_iniciales_norte = [(12, 21), (12, 20),
-                     (12, 19), (12, 18),
-                     (12, 17), (12, 16)]
+p_iniciales_norte = [(12, 23), (12, 22),
+                     (12, 21), (12, 20),
+                     (12, 19), (12, 18)]
 
 p_iniciales_este = [(23, 11), (22, 11),
                     (21, 11), (20, 11)]
+
+p_iniciales_sur = [(15, 0), (15, 1),
+                   (15, 2), (15, 3),
+                   (15, 4)]
+
+p_iniciales_oeste = [(0, 8), (1, 8),
+                     (2, 8), (3, 8),
+                     (4, 8), (5, 8)]
+
 
 Grafo = nx.DiGraph()
 for nodo, adyacentes in nodos.items():
@@ -507,7 +516,6 @@ class AgenteSemaforoR(mesa.Agent):
     def deteccion(self):
         x, y = self.pos
         cedas = []
-        celdas_centrales = []
 
         if self.orientacion == "Norte":
             y1 = y + 1
@@ -518,6 +526,7 @@ class AgenteSemaforoR(mesa.Agent):
             y6 = y - 3
             y7 = y
             y8 = y - 4
+            y9 = y - 5
             cedas.append((x, y1))
             cedas.append((x, y2))
             cedas.append((x, y3))
@@ -526,7 +535,7 @@ class AgenteSemaforoR(mesa.Agent):
             cedas.append((x, y5))
             cedas.append((x, y6))
             cedas.append((x, y7))
-            cedas.append((x, y8))
+            cedas.append((x, y9))
             
         if self.orientacion == "Este":
             x1 = x + 1
@@ -561,6 +570,7 @@ class AgenteSemaforoR(mesa.Agent):
             cedas.append((x5, y))
             cedas.append((x6, y))
             cedas.append((x7, y))
+            
             
         if self.orientacion == "Sur":
             y1 = y - 1
@@ -614,7 +624,7 @@ class AgenteAuto(mesa.Agent):
         self.pos_inicial = pos_inicial
         self.pos_final = pos_final
         self.graf = Grafoo
-        self.contador = 0
+        self.contador = 1
         self.paso = 0
         self.llegado = 0
 
@@ -626,17 +636,15 @@ class AgenteAuto(mesa.Agent):
 
         cellmates = self.model.grid.get_cell_list_contents([next_position])
 
-
         for agent in cellmates:
             if isinstance(agent, AgenteSemaforoR) and agent.val == 2:
                 self.contador -= 1
                 return  
-
             
-        if len(cellmates) > 1:
-                if isinstance(cellmates[0], AgenteAuto):
-                    self.contador -= 1
-                    return
+        for agent in cellmates:
+            if isinstance(agent, AgenteAuto):
+                self.contador -=1
+                return
 
 
 
@@ -661,10 +669,12 @@ class AgenteAuto(mesa.Agent):
 class SemaforoModel(mesa.Model):
     def __init__(self, width, height):
         self.schedule = mesa.time.RandomActivation(self)
-        self.grid = mesa.space.MultiGrid(width, height, True)
-        #self.running = True
+        self.grid = mesa.space.MultiGrid(width, height, False)
+        self.running = True
         self.m = 0
         R = 0
+        self.primero = True
+        self.esperar = 0
 
         mapa_2 = [[' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
                   [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
@@ -675,8 +685,8 @@ class SemaforoModel(mesa.Model):
                   [' ', ' ', '$', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', ' ', ' ', ' ', ' ', '#', '$', '#', '$', '#', '#', ' ', ' '],
                   [' ', ' ', '#', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', ' ', ' ', 'S', 'S', '#', '#', '#', '#', '#', '#', ' ', ' '],
                   [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'O', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-                  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'O', ' ', '%', '%', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-                  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', '%', '%', ' ', 'E', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+                  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'O', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+                  [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'E', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
                   [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'E', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
                   [' ', ' ', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', '#', 'N', 'N', ' ', ' ', '#', '#', ' ', ' ', '#', '#', ' ', ' '],
                   [' ', ' ', '#', '#', '$', ' ', ' ', '#', '#', '#', '#', '$', ' ', ' ', ' ', ' ', '$', '#', ' ', ' ', '#', '#', ' ', ' '],
@@ -774,9 +784,9 @@ class SemaforoModel(mesa.Model):
 
 
         posiciones_pasadas_i = []
-        posiciones_pasadas_f = []
 
-        for i in range(2):        
+        pos1 = random.randrange(1, 4)
+        for i in range(pos1):        
             p_inicial = random.choice(p_iniciales_norte)
             p_final = (12, 0)
             j = R + 1 + i
@@ -796,14 +806,56 @@ class SemaforoModel(mesa.Model):
             posiciones_pasadas_i.append(p_inicial)
 
         R += 3
-
-        for i in range(1):        
+        pos1 = random.randrange(1, 4)
+        for i in range(pos1):        
             p_inicial = random.choice(p_iniciales_este)
             p_final = (0, 11)
             j = R + 1 + i
 
             while p_inicial in posiciones_pasadas_i:
                 p_inicial = random.choice(p_iniciales_este)
+
+                
+            c = AgenteAuto(j, self, p_inicial, p_final, Grafo)
+            self.schedule.add(c)
+                
+            x = p_inicial[0]
+            y = p_inicial[1]
+
+            self.grid.place_agent(c, (x, y))
+
+            posiciones_pasadas_i.append(p_inicial)
+
+        R += 3
+        pos1 = random.randrange(1, 4)
+        for i in range(pos1):        
+            p_inicial = random.choice(p_iniciales_sur)
+            p_final = (15, 23)
+            j = R + 1 + i
+
+            while p_inicial in posiciones_pasadas_i:
+                p_inicial = random.choice(p_iniciales_sur)
+
+                
+            c = AgenteAuto(j, self, p_inicial, p_final, Grafo)
+            self.schedule.add(c)
+                
+            x = p_inicial[0]
+            y = p_inicial[1]
+
+            self.grid.place_agent(c, (x, y))
+
+            posiciones_pasadas_i.append(p_inicial)
+
+        R += 3
+        pos1 = random.randrange(1, 4)
+        for i in range(pos1):        
+            p_inicial = random.choice(p_iniciales_oeste)
+            p_final = (23, 8)
+            j = R + 1 + i
+
+            while p_inicial in posiciones_pasadas_i:
+                p_inicial = random.choice(p_iniciales_oeste)
 
                 
             c = AgenteAuto(j, self, p_inicial, p_final, Grafo)
@@ -832,6 +884,18 @@ class SemaforoModel(mesa.Model):
                 
         return id_pos
     
+    def get_agent_position_Sem(self):
+        id_pos_sem = []
+        for agent in self.schedule.agents:
+            if isinstance(agent, AgenteSemaforoR):
+                y = {
+                    "id": agent.unique_id,
+                    "estado": agent.val
+                }
+                id_pos_sem.append(y)
+                
+        return id_pos_sem
+    
     def Vacios(self):
         for agent in self.schedule.agents:
             if isinstance(agent, AgenteSemaforoR):
@@ -846,60 +910,67 @@ class SemaforoModel(mesa.Model):
     def step(self):
         total_llegado = 0
         self.counttt = 0
-        self.primero = True
+        if self.esperar == 0: 
 
-        for agent in self.schedule.agents:
-            if isinstance(agent, AgenteAuto):
-                if agent.llegado == 1:
-                    total_llegado += 1       
+            for agent in self.schedule.agents:
+                if isinstance(agent, AgenteAuto):
+                    if agent.llegado == 1:
+                        total_llegado += 1    
 
-            if isinstance(agent, (AgenteSemaforoR)):
-                if agent.deteccion() == True and self.primero == True and (agent.orientacion == "Norte" or agent.orientacion == "Sur"):
-                    self.primero = False
-                    for agent in self.schedule.agents:
-                        if isinstance(agent, AgenteSemaforoR) and (agent.orientacion == "Norte" or agent.orientacion == "Sur"):
-                            agent.color = "Verde"
-                        else:
-                            agent.color = "Rojo"
+          
 
-                        if isinstance(agent, AgenteSemaforoR) and (agent.orientacion == "Oeste" or agent.orientacion == "Este"):
-                            agent.color = "Rojo"
-                        else:
-                            agent.color = "Verde"
-
-                elif agent.deteccion() == True and self.primero == True  and (agent.orientacion == "Este" or agent.orientacion == "Oeste"):
-                    self.primero = False
-                    for agent in self.schedule.agents:
-                        if isinstance(agent, AgenteSemaforoR) and (agent.orientacion == "Este" or agent.orientacion == "Oeste"):
-                            agent.color = "Verde"
-                        else:
-                            agent.color = "Rojo"
-
-                        if isinstance(agent, AgenteSemaforoR) and (agent.orientacion == "Norte" or agent.orientacion == "Sur"):
-                            agent.color = "Rojo"
-                        else:
-                            agent.color = "Verde"
-                else:
-                    if self.Vacios() == True:
+                if isinstance(agent, (AgenteSemaforoR)):
+                    if agent.deteccion() == True and (agent.orientacion == "Norte" or agent.orientacion == "Sur"):
+                        self.primero = False
                         for agent in self.schedule.agents:
-                            if isinstance(agent, AgenteSemaforoR) and self.counttt == 4:
-                                agent.color = "Yellow"
+                            if isinstance(agent, AgenteSemaforoR) and (agent.orientacion == "Norte" or agent.orientacion == "Sur"):
+                                agent.color = "Verde"
+                            else:
+                                agent.color = "Rojo"
 
-                    self.counttt +=1
+                            if isinstance(agent, AgenteSemaforoR) and (agent.orientacion == "Oeste" or agent.orientacion == "Este"):
+                                agent.color = "Rojo"
+                            else:
+                                agent.color = "Verde"
+                        self.esperar = 10
+                    
+                        
+
+                    elif agent.deteccion() == True and (agent.orientacion == "Este" or agent.orientacion == "Oeste"):
+                        self.primero = False
+                        for agent in self.schedule.agents:
+                            if isinstance(agent, AgenteSemaforoR) and (agent.orientacion == "Este" or agent.orientacion == "Oeste"):
+                                agent.color = "Verde"
+                            else:
+                                agent.color = "Rojo"
+
+                            if isinstance(agent, AgenteSemaforoR) and (agent.orientacion == "Norte" or agent.orientacion == "Sur"):
+                                agent.color = "Rojo"
+                            else:
+                                agent.color = "Verde"
+                        self.esperar = 10
+                                
+                    else:
+                        if self.Vacios() == True:
+                            for agent in self.schedule.agents:
+                                if isinstance(agent, AgenteSemaforoR) and self.counttt == 1:
+                                    agent.color = "Yellow"
 
 
+                        self.counttt +=1
 
+        if self.esperar > 0:
+            self.esperar -= 1
 
-
-
+        
 
         self.schedule.step()
         self.datacollector.collect(self)
         
 
 
-        """if total_llegado == 0:
-            self.running = False"""
+        if total_llegado == 4:
+            self.running = False
         
 
 
