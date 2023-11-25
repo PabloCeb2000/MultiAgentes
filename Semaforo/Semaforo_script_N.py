@@ -517,7 +517,7 @@ class AgenteSemaforoR(mesa.Agent):
 
             
     def step(self):
-        if self.cambio %  == 0:
+        if self.cambio % 2 == 0:
             if (self.val == 1):
                 self.val = 2
             elif (self.val == 2):

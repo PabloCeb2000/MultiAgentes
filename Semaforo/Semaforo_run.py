@@ -12,7 +12,7 @@ def batch():
     results = mesa.batch_run(
         SemaforoModel,
         parameters=paramas,
-        iterations=10,
+        iterations=100,
         max_steps=100,
         number_processes=1,
         data_collection_period=1,
@@ -22,7 +22,7 @@ def batch():
     results2 = mesa.batch_run(
         SemaforoModelN,
         parameters=paramas,
-        iterations=10,
+        iterations=100,
         max_steps=100,
         number_processes=1,
         data_collection_period=1,
