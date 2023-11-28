@@ -26,6 +26,8 @@ def agent_portrayal(agent):
         portrayal = {"Shape": "rect", "Filled": "true", "h": 1.0, "w": 1.0, "Color": "grey", "Layer": 2}
     if agent.val == 6:
         portrayal = {"Shape": "rect", "Filled": "true", "h": 1.0, "w": 1.0, "Color": "yellow", "Layer": 1}
+    if agent.val == 7:
+        portrayal = {"Shape": "rect", "Filled": "true", "h": 1.0, "w": 1.0, "Color": "brown", "Layer": 1}
     return portrayal
 
 # Crea una cuadrícula visual para la simulación

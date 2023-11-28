@@ -5,7 +5,7 @@ import pandas as pd
 import matplotlib.pylab as plt
 import random
 import networkx as nx
-from diccionario_grafo import diccionario_glorieta, diccionario_abajo_derecha, diccionario_arriba_derecha
+from diccionario_grafo import diccionario_glorieta, diccionario_abajo_derecha, diccionario_arriba_derecha, diccionario_metrobus_derecha
 
 Grafo = nx.DiGraph()
 
@@ -21,6 +21,11 @@ for nodo, adyacentes in diccionario_abajo_derecha.items():
         Grafo.add_edge(nodo, adyacente, costo = 1.0)
 
 for nodo, adyacentes in diccionario_arriba_derecha.items():
+    Grafo.add_node(nodo)
+    for adyacente in adyacentes:
+        Grafo.add_edge(nodo, adyacente, costo = 1.0)
+
+for nodo, adyacentes in diccionario_metrobus_derecha.items():
     Grafo.add_node(nodo)
     for adyacente in adyacentes:
         Grafo.add_edge(nodo, adyacente, costo = 1.0)
@@ -186,6 +191,75 @@ class AgenteAuto(mesa.Agent):
         self.ruta = nx.shortest_path(self.graf, self.pos_inicial, self.pos_final)
 
 
+    def move(self, c, cambiarC):
+        next_position = self.ruta[c]
+
+
+
+        cellmates = self.model.grid.get_cell_list_contents([next_position])
+
+        for agent in cellmates:
+            if isinstance(agent, AgenteSemaforoR) and agent.val == 2:
+                self.contador -= 1
+                return  
+            
+        for agent in cellmates:
+            if isinstance(agent, AgenteAuto):
+                self.contador -=1
+                return
+
+        x, y = self.pos 
+        celda_metrobus = self.model.grid.get_cell_list_contents([(x+1, y)])
+
+        siEsCarril = False
+
+        for agent in celda_metrobus:
+            if isinstance(agent, AgenteMetrobus):
+                siEsCarril = True
+
+
+        if cambiarC < 0.2 and siEsCarril == True:
+            self.model.grid.move_agent(self, ([self.pos[0] + 1, self.pos[1]]))
+            pos_tuple = tuple(self.pos)
+            self.pos_inicial = pos_tuple
+            self.pos_final = (17, 42)
+            self.ruta = nx.shortest_path(self.graf, self.pos_inicial, self.pos_final)
+            print(self.ruta)
+            siEsCarril = False
+            self.contador = 0
+
+        else:
+            self.model.grid.move_agent(self, self.ruta[c])
+
+
+
+    def step(self):
+        c = self.contador
+
+        if len(self.ruta) > c:
+            mover = random.random()
+            self.move(c, mover)
+            self.paso += 1
+
+        self.contador += 1
+        
+
+
+class AgenteMetrobusB(mesa.Agent):
+    def __init__(self, unique_id, model, pos_inicial, pos_final, Grafoo):
+        super().__init__(unique_id, model)
+        self.val = 7
+        self.pos_inicial = pos_inicial
+        self.pos_final = pos_final
+        self.graf = Grafoo
+        self.contador = 1
+        self.paso = 0
+        self.llegado = 0
+        self.completaste = False
+        self.movement = 0
+
+        self.ruta = nx.shortest_path(self.graf, self.pos_inicial, self.pos_final)
+
     def move(self, c):
         next_position = self.ruta[c]
 
@@ -204,11 +278,12 @@ class AgenteAuto(mesa.Agent):
 
 
         self.model.grid.move_agent(self, self.ruta[c])
+        
 
     def step(self):
         c = self.contador
 
-        if len(self.ruta) > c:
+        if len(self.ruta) > c :
             self.move(c)
             self.paso += 1
 
@@ -219,6 +294,12 @@ class AgenteAuto(mesa.Agent):
             self.llegado = 1
             self.completaste = True
             self.contador = 1
+
+        self.movement += 1
+
+
+        
+        
 
 
 class ReformaModel(mesa.Model):
@@ -340,10 +421,12 @@ class ReformaModel(mesa.Model):
             n_i += 1
 
         posiciones_pasadas = []
+        
         for i in range(1):        
-            p_inicial = (14, 0)
-            p_final = (14, 42)
+            p_inicial = (16, 0)
+            p_final = (16, 42)
             j = R + 1 + i
+            #print(random.choice(diccionario_abajo_derecha))
             """
             while p_inicial in posiciones_pasadas:
                 p_inicial = random.choice(p_iniciales)"""
@@ -356,8 +439,26 @@ class ReformaModel(mesa.Model):
             y = p_inicial[1]
 
             self.grid.place_agent(c, (x, y))
+            R += 1
 
             #posiciones_pasadas.append(p_inicial)
+        
+        for i in range(0): 
+            j = R + 1 + i
+
+            p_inicial = (17, 8)
+            p_final = (17, 42)
+
+            c = AgenteMetrobusB(j, self, p_inicial, p_final, Grafo)
+            self.schedule.add(c)
+                
+
+            x = p_inicial[0]
+            y = p_inicial[1]
+            
+
+            self.grid.place_agent(c, (x, y))
+            R += 1
 
     def get_agent_position(self):
         id_pos = []
@@ -398,6 +499,7 @@ class ReformaModel(mesa.Model):
         if self.esperar == 0: 
 
             for agent in self.schedule.agents:
+                """
                 if isinstance(agent, AgenteAuto):
                     if agent.llegado == 1:
                         total_llegado += 1
@@ -408,6 +510,16 @@ class ReformaModel(mesa.Model):
                         agent.ruta = nx.shortest_path(Grafo, agent.pos_inicial, agent.pos_final)
                         agent.completaste = False
 
+                if isinstance(agent, AgenteMetrobusB):
+                    if agent.llegado == 1:
+                        total_llegado += 1
+
+                    if agent.completaste == True:
+                        agent.pos_inicial == agent.pos_final
+                        agent.pos_final == agent.pos_inicial
+                        agent.ruta = nx.shortest_path(Grafo, agent.pos_inicial, agent.pos_final)
+                        agent.completaste = False
+"""
 
           
 
