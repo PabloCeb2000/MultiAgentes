@@ -35,14 +35,15 @@ diccionario_glorieta = {
     (13, 31): [(13, 32), (13, 30), (12, 31)],
     (13, 32): [(12, 32)],
     (12, 30): [(11, 30), (12, 31)],
-    (12, 31): [(11, 31), (12, 30), (12, 32)],
-    (12, 32): [(12, 33)],
+    (12, 31): [(11, 31), (12, 30)],
+    (12, 32): [(12, 31)],
     (11, 30): [(11, 31), (10, 30)],
-    (11, 31): [(11, 32), (11, 30), (10, 31)],
-    (11, 32): [(11, 33)],
-    (10, 32) : [(10, 33)],
-    (10, 31): [(10, 32), (10, 30)],
+    (11, 31): [(11, 30), (10, 31)],
+    (11, 32): [(11, 31)],
+    (10, 32) : [(10, 31)],
+    (10, 31): [(10, 30)],
     (10, 30): [(10, 29), (9, 30)],
+
     (9, 30): [(8, 30), (9, 29)], # Falta
     (10, 29): [(10, 28), (9, 29)],
     (9, 29): [(9, 28), (10, 29)], #Falta
@@ -605,21 +606,49 @@ diccionario_lateral_derecha = {
     (19, 24): [(18, 24), (19, 25)],    
 }
 
-# Crear grafo
-H = nx.DiGraph()
+
+
+Grafo = nx.DiGraph()
 
 # Añadir nodos y sus nodos adyacentes desde diccionario
 for nodo, adyacentes in diccionario_glorieta.items():
-    H.add_node(nodo)
+    Grafo.add_node(nodo)
     for adyacente in adyacentes:
-        H.add_edge(nodo, adyacente, costo = 1.0)
+        Grafo.add_edge(nodo, adyacente, costo = 1.0)
 
 for nodo, adyacentes in diccionario_abajo_derecha.items():
-    H.add_node(nodo)
+    Grafo.add_node(nodo)
     for adyacente in adyacentes:
-        H.add_edge(nodo, adyacente, costo = 22.0)
+        Grafo.add_edge(nodo, adyacente, costo = 1.0)
 
-camino = nx.dijkstra_path(H, (14, 0), (14, 22))
+for nodo, adyacentes in diccionario_arriba_derecha.items():
+    Grafo.add_node(nodo)
+    for adyacente in adyacentes:
+        Grafo.add_edge(nodo, adyacente, costo = 1.0)
+
+for nodo, adyacentes in diccionario_metrobus_derecha.items():
+    Grafo.add_node(nodo)
+    for adyacente in adyacentes:
+        Grafo.add_edge(nodo, adyacente, costo = 1.0)
+
+for nodo, adyacentes in diccionario_arriba_izquierda.items():
+    Grafo.add_node(nodo)
+    for adyacente in adyacentes:
+        Grafo.add_edge(nodo, adyacente, costo = 1.0)
+
+for nodo, adyacentes in diccionario_abajo_izquierda.items():
+    Grafo.add_node(nodo)
+    for adyacente in adyacentes:
+        Grafo.add_edge(nodo, adyacente, costo = 1.0)
+
+
+for nodo, adyacentes in diccionario_metrobus_izquierda.items():
+    Grafo.add_node(nodo)
+    for adyacente in adyacentes:
+        Grafo.add_edge(nodo, adyacente, costo = 1.0)
+
+
+camino = nx.dijkstra_path(Grafo, (12, 42), (11, 40))
 print(camino)
 
 

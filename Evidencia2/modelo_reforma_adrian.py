@@ -6,7 +6,7 @@ import matplotlib.pylab as plt
 import random
 import networkx as nx
 from mesa.datacollection import DataCollector
-from diccionario_grafo import diccionario_glorieta, diccionario_abajo_derecha, diccionario_arriba_derecha, diccionario_metrobus_derecha
+from diccionario_grafo import diccionario_glorieta, diccionario_abajo_derecha, diccionario_arriba_derecha, diccionario_metrobus_derecha, diccionario_abajo_izquierda, diccionario_arriba_izquierda, diccionario_metrobus_izquierda
 #Posiciones para que se spawneen los carros
 
 
@@ -30,6 +30,22 @@ for nodo, adyacentes in diccionario_arriba_derecha.items():
         Grafo.add_edge(nodo, adyacente, costo = 1.0)
 
 for nodo, adyacentes in diccionario_metrobus_derecha.items():
+    Grafo.add_node(nodo)
+    for adyacente in adyacentes:
+        Grafo.add_edge(nodo, adyacente, costo = 1.0)
+
+for nodo, adyacentes in diccionario_arriba_izquierda.items():
+    Grafo.add_node(nodo)
+    for adyacente in adyacentes:
+        Grafo.add_edge(nodo, adyacente, costo = 1.0)
+
+for nodo, adyacentes in diccionario_abajo_izquierda.items():
+    Grafo.add_node(nodo)
+    for adyacente in adyacentes:
+        Grafo.add_edge(nodo, adyacente, costo = 1.0)
+
+
+for nodo, adyacentes in diccionario_metrobus_izquierda.items():
     Grafo.add_node(nodo)
     for adyacente in adyacentes:
         Grafo.add_edge(nodo, adyacente, costo = 1.0)
@@ -181,7 +197,7 @@ class AgenteMetrobus(mesa.Agent):
         self.val = 4
 
 class AgenteAuto(mesa.Agent):
-    def __init__(self, unique_id, model, pos_inicial, pos_final, Grafoo):
+    def __init__(self, unique_id, model, pos_inicial, pos_final, multa,  Grafoo):
         super().__init__(unique_id, model)
         self.val = 5
         self.pos_inicial = pos_inicial
@@ -192,14 +208,21 @@ class AgenteAuto(mesa.Agent):
         self.ruta = nx.shortest_path(self.graf, self.pos_inicial, self.pos_final)
         self.steps_to_move = 0
         self.num_pasajeros = random.randint(1, 4)
+        self.multa = multa
+        self.cambio_de_carril = False
         
     def see_if_next_is_empty(self):
         x, y = self.pos
         next_cell_coord = self.ruta[self.contador]
 
         next_cell = self.model.grid.get_cell_list_contents([next_cell_coord])
+
+        es_celda_metrobus_vacia = True
+        for agent in next_cell:
+            if not(isinstance(agent, AgenteMetrobus)) and not(len(next_cell) > 1):
+                es_celda_metrobus_vacia = False
         # Verificar si la celda está vacía
-        if not next_cell:
+        if not next_cell or es_celda_metrobus_vacia:
             # la próxima celda está vacía
             return True
         else:
@@ -215,14 +238,23 @@ class AgenteAuto(mesa.Agent):
         cells_to_check_coord = self.ruta[self.contador:self.contador + cells_to_check]
 
         all_empty = True
+        
         for coord in cells_to_check_coord:
             next_cells = self.model.grid.get_cell_list_contents([coord])
             # Verificar si todas las celdas están vacías
+
             if any(next_cells):
                 all_empty = False
                 break
 
-        if all_empty:
+        all_metrobus = True
+        for coord in cells_to_check_coord:
+            content = self.model.grid.get_cell_list_contents([coord])
+            for agent in content:
+                if not(isinstance(agent, AgenteMetrobus)) and not(len(content) > 1):
+                    all_metrobus = False
+        
+        if all_empty or all_metrobus:
             #  las próximas celdas están vacías
 
             return True
@@ -238,6 +270,7 @@ class AgenteAuto(mesa.Agent):
             self.steps_to_move -= 1
         elif see_if_empty == False and self.steps_to_move < 3:
             self.steps_to_move += 1
+
 
 
     def move(self, c, cambiarC):
@@ -272,14 +305,16 @@ class AgenteAuto(mesa.Agent):
             if isinstance(agent, AgenteMetrobus):
                 siEsCarril = True
 
-
-        if cambiarC < 0 and siEsCarril == True and self.steps_to_move == 0:
+        probablidad_de_cambiar = -10/(-self.multa-10)
+        if cambiarC < 0 and siEsCarril == True and self.steps_to_move == 0 and self.cambio_de_carril == False:
             self.model.grid.move_agent(self, ([self.pos[0] + 1, self.pos[1]]))
             pos_tuple = tuple(self.pos)
             self.pos_inicial = pos_tuple
             self.pos_final = (17, 42)
 
             self.ruta = nx.shortest_path(self.graf, self.pos_inicial, self.pos_final)
+            
+            self.cambio_de_carril = True
 
             self.contador = 0
             
@@ -291,6 +326,7 @@ class AgenteAuto(mesa.Agent):
             self.model.grid.move_agent(self, self.ruta[c])
             self.contador += 1
            
+        
         self.change_speed_if_empty()
       
             
@@ -314,7 +350,172 @@ class AgenteAuto(mesa.Agent):
             self.model.schedule.remove(self)
 
 
+class AgenteAutoAprovechado(mesa.Agent):
+    def __init__(self, unique_id, model, pos_inicial, pos_final, multa,  Grafoo):
+        super().__init__(unique_id, model)
+        self.val = 5
+        self.pos_inicial = pos_inicial
+        self.pos_final = pos_final
+        self.graf = Grafoo
+        self.contador = 1
+        self.paso = 0
+        self.ruta = nx.shortest_path(self.graf, self.pos_inicial, self.pos_final)
+        self.steps_to_move = 0
+        self.num_pasajeros = random.randint(1, 4)
+        self.multa = multa
+        self.cambio_de_carril = False
         
+    def see_if_next_is_empty(self):
+        x, y = self.pos
+        next_cell_coord = self.ruta[self.contador]
+
+        next_cell = self.model.grid.get_cell_list_contents([next_cell_coord])
+
+        es_celda_metrobus_vacia = True
+        for agent in next_cell:
+            if not(isinstance(agent, AgenteMetrobus)) and not(len(next_cell) > 1):
+                es_celda_metrobus_vacia = False
+        # Verificar si la celda está vacía
+        if not next_cell or es_celda_metrobus_vacia:
+            # la próxima celda está vacía
+            return True
+        else:
+            # la próxima celda no está vacía
+            return False
+    
+    def see_if_empty(self):
+        x, y = self.pos
+        cells_to_check = len(self.ruta) - self.contador
+        if cells_to_check > 6:
+            cells_to_check = 6
+
+        cells_to_check_coord = self.ruta[self.contador:self.contador + cells_to_check]
+
+        all_empty = True
+        
+        for coord in cells_to_check_coord:
+            next_cells = self.model.grid.get_cell_list_contents([coord])
+            # Verificar si todas las celdas están vacías
+
+            if any(next_cells):
+                all_empty = False
+                break
+
+        all_metrobus = True
+        for coord in cells_to_check_coord:
+            content = self.model.grid.get_cell_list_contents([coord])
+            for agent in content:
+                if not(isinstance(agent, AgenteMetrobus)) and not(len(content) > 1):
+                    all_metrobus = False
+        
+        if all_empty or all_metrobus:
+            #  las próximas celdas están vacías
+
+            return True
+        else:
+            # alguna de las próximas celdas no está vacía
+
+            return False
+
+    def change_speed_if_empty(self):
+
+        see_if_empty = self.see_if_empty()
+        if see_if_empty and self.steps_to_move > 0:
+            self.steps_to_move -= 1
+        elif see_if_empty == False and self.steps_to_move < 3:
+            self.steps_to_move += 1
+
+
+
+    def move(self, c, cambiarC):
+        next_position = self.ruta[c]
+    
+
+        cellmates = self.model.grid.get_cell_list_contents([next_position])
+ 
+        
+        if not self.see_if_next_is_empty and self.steps_to_move == 3:
+            return
+        
+        # Cambiar al carril derecho del metrobus
+        x, y = self.pos 
+        celda_metrobus = self.model.grid.get_cell_list_contents([(x+1, y)])
+
+        siEsCarril = False
+
+        for agent in celda_metrobus:
+            if isinstance(agent, AgenteMetrobus):
+                siEsCarril = True
+
+        probablidad_de_cambiar = -10/(-self.multa-10)
+        if cambiarC < probablidad_de_cambiar and siEsCarril == True and self.steps_to_move == 0 and self.cambio_de_carril == False:
+            self.model.grid.move_agent(self, ([self.pos[0] + 1, self.pos[1]]))
+            pos_tuple = tuple(self.pos)
+            self.pos_inicial = pos_tuple
+            self.pos_final = (17, 42)
+
+            self.ruta = nx.shortest_path(self.graf, self.pos_inicial, self.pos_final)
+            
+            self.cambio_de_carril = True
+ 
+            self.contador = 0
+
+    
+                
+        # Cambiar al carril izquierdo del metrobus
+                
+        x, y = self.pos 
+        celda_metrobus = self.model.grid.get_cell_list_contents([(x-1, y)])
+
+        siEsCarril = False
+
+        for agent in celda_metrobus:
+            if isinstance(agent, AgenteMetrobus):
+                siEsCarril = True
+
+        
+        if cambiarC < probablidad_de_cambiar and siEsCarril == True and self.steps_to_move == 0 and self.cambio_de_carril == False:
+            self.model.grid.move_agent(self, ([self.pos[0] - 1, self.pos[1]]))
+            pos_tuple = tuple(self.pos)
+            self.pos_inicial = pos_tuple
+            self.pos_final = (9, 0)
+
+            self.ruta = nx.shortest_path(self.graf, self.pos_inicial, self.pos_final)
+           
+            self.cambio_de_carril = True
+
+            self.contador = 0
+
+
+
+        elif self.steps_to_move == 0:
+            
+            self.model.grid.move_agent(self, self.ruta[self.contador])
+            self.contador += 1
+        
+        
+        self.change_speed_if_empty()
+    
+            
+
+
+        
+
+
+
+    def step(self):
+        c = self.contador
+
+        if len(self.ruta) > c:
+            mover = random.random()
+            self.move(c, mover)
+
+        else:
+            #self.model.datacollector.collect(self.num_pasajeros)  
+            self.model.total_pasajeros_auto += self.num_pasajeros
+            self.model.grid.remove_agent(self)
+            self.model.schedule.remove(self)
+    
         
 
 
@@ -328,9 +529,46 @@ class AgenteMetrobusB(mesa.Agent):
         self.contador = 1
         self.paso = 0
         self.num_pasajeros = random.randint(100, 250)
+        self.steps_to_move = 1
 
 
         self.ruta = nx.shortest_path(self.graf, self.pos_inicial, self.pos_final)
+
+    def see_if_empty(self):
+        x, y = self.pos
+        cells_to_check = len(self.ruta) - self.contador
+        if cells_to_check > 10:
+            cells_to_check = 10
+
+        cells_to_check_coord = self.ruta[self.contador+1:self.contador + cells_to_check]
+
+        all_metrobus = True
+        for coord in cells_to_check_coord:
+            content = self.model.grid.get_cell_list_contents([coord])
+            if len(content) > 1:
+                all_metrobus = False
+                break
+            
+            
+
+        
+        if all_metrobus:
+            #  las próximas celdas están vacías
+       
+            return True
+        else:
+            # alguna de las próximas celdas no está vacía
+         
+            return False    
+
+    def change_speed_if_empty(self):
+
+        see_if_empty = self.see_if_empty()
+        if see_if_empty and self.steps_to_move > 0:
+            self.steps_to_move -= 1
+        elif see_if_empty == False and self.steps_to_move < 3:
+            self.steps_to_move += 1
+
 
     def move(self, c):
         next_position = self.ruta[c]
@@ -344,12 +582,15 @@ class AgenteMetrobusB(mesa.Agent):
 
 
 
-
-        self.model.grid.move_agent(self, self.ruta[c])
+        if self.steps_to_move == 0:
+            self.model.grid.move_agent(self, self.ruta[c])
+            self.contador += 1
         
+        self.change_speed_if_empty()
 
     def step(self):
         c = self.contador
+        self.model.lista_velocidades_bus.append(self.steps_to_move)
         if len(self.ruta) > c :
             self.move(c)
         else:
@@ -364,8 +605,7 @@ class AgenteMetrobusB(mesa.Agent):
             self.model.schedule.remove(self)
             
 
-        self.contador += 1
-        
+       
 
 
 
@@ -385,6 +625,16 @@ class ReformaModel(mesa.Model):
     def total_pasajeros_bus_function(self):
         return self.total_pasajeros_bus
     
+    def promedio_velocidades_bus(self):
+
+        if len(self.lista_velocidades_bus) == 0:
+            return None
+        
+        promedio = sum(self.lista_velocidades_bus)/len(self.lista_velocidades_bus)
+        return promedio
+    
+    def get_multa(self):
+        return self.multa
 
     def __init__(self, width, height):
         self.schedule = mesa.time.RandomActivation(self)
@@ -397,14 +647,24 @@ class ReformaModel(mesa.Model):
         self.unique_id = 2000
         self.wait_to_spawn = 2
         self.wait_to_spawn_bus = 100
+        self.wait_to_spawn_carro_aprovechado = 30
+
+        #Inicializar multa en 0
+        self.multa = 0
+
 
         # Datos para el data collector
         self.total_pasajeros_bus = 0
         self.total_pasajeros_auto = 0
 
+        self.lista_velocidades_bus = []
+
+
         self.datacollector = DataCollector(
             model_reporters={"TotalPasajerosAutos": self.total_pasajeros_auto_function,
-                             "TotalPasajerosBus": self.total_pasajeros_bus_function},
+                             "TotalPasajerosBus": self.total_pasajeros_bus_function,
+                             "PromedioVelocidades": self.promedio_velocidades_bus,
+                             "Multa": self.get_multa}
             #agent_reporters={"NumPasajerosAuto": lambda a: a.num_pasajeros}
             )
 
@@ -518,7 +778,7 @@ class ReformaModel(mesa.Model):
 
         posiciones_pasadas = []
         
-        for i in range(1):        
+        for i in range(0):        
             p_inicial = (16, 0)
             p_final = (16, 42)
             j = R + 1 + i
@@ -664,9 +924,57 @@ class ReformaModel(mesa.Model):
         if self.esperar > 0:
             self.esperar -= 1
 
-        spawn_list = [(14, 0), (15, 0), (16, 0)]
+        #Aumentar en 50 cada 20 pasos:
+        if self.schedule.steps < 1000:
+            self.multa = 0
+        else:
+            if self.schedule.steps % 150 == 0:
+                self.multa += 100
 
-        # Spawnear más carros 
+
+        #Spawnear carros aprovechados abajo a la derecha
+        spawn_list = [(14, 0), (15, 0), (16, 0)]
+        
+        available_coord_list = []
+        for coord in spawn_list:
+            next_cells = self.grid.get_cell_list_contents([coord])
+            # Verificar si todas las celdas están vacías
+            if not any(next_cells):
+                available_coord_list.append(coord)
+
+        if len(available_coord_list) > 0 and self.wait_to_spawn_carro_aprovechado == 0:
+            coord_to_spawn = random.choice(available_coord_list)
+            auto = AgenteAutoAprovechado(self.unique_id, self, (coord_to_spawn), (16, 42), self.multa, Grafo)
+            self.schedule.add(auto)
+            self.grid.place_agent(auto, (coord_to_spawn))
+            self.unique_id+=1
+            
+            #self.wait_to_spawn_carro_aprovechado = 3
+
+        #Spawnear carros aprovechados arriba a la izquierda
+        spawn_list = [(10, 42), (11, 42), (13, 42)]
+        available_coord_list = []
+        for coord in spawn_list:
+            next_cells = self.grid.get_cell_list_contents([coord])
+            # Verificar si todas las celdas están vacías
+            if not any(next_cells):
+                available_coord_list.append(coord)
+
+        if len(available_coord_list) > 0 and self.wait_to_spawn_carro_aprovechado == 0:
+            coord_to_spawn = random.choice(available_coord_list)
+            auto = AgenteAutoAprovechado(self.unique_id, self, (coord_to_spawn), (11, 0), self.multa, Grafo)
+            self.schedule.add(auto)
+            self.grid.place_agent(auto, (coord_to_spawn))
+            self.unique_id+=1
+            self.wait_to_spawn_carro_aprovechado = 3
+         
+        
+        
+
+        
+
+        # Spawnear más carros abajo a la derecha
+        spawn_list = [(14, 0), (15, 0), (16, 0)]
         available_coord_list = []
         for coord in spawn_list:
             next_cells = self.grid.get_cell_list_contents([coord])
@@ -676,12 +984,14 @@ class ReformaModel(mesa.Model):
 
         if len(available_coord_list) > 0 and self.wait_to_spawn == 0:
             coord_to_spawn = random.choice(available_coord_list)
-            auto = AgenteAuto(self.unique_id, self, (coord_to_spawn), (16, 42), Grafo)
+            auto = AgenteAuto(self.unique_id, self, (coord_to_spawn), (16, 42), 0, Grafo)
             self.schedule.add(auto)
             self.grid.place_agent(auto, (coord_to_spawn))
             self.unique_id+=1
-            self.wait_to_spawn = 2
-                
+            
+            #self.wait_to_spawn = 2
+        
+        #Spawnear autobus abajo a la derecha
         if self.wait_to_spawn_bus == 0:
             p_inicial = (17, 0)
             p_final = (17, 42)
@@ -691,20 +1001,56 @@ class ReformaModel(mesa.Model):
             self.schedule.add(metrobus)
             self.grid.place_agent(metrobus, p_inicial)
             self.unique_id+=1
+            #self.wait_to_spawn_bus = 100
+        
+        # Spawnear más carros abajo a la izquierda
+        spawn_list = [(10, 42), (11, 42), (12, 42)]
+        available_coord_list = []
+        for coord in spawn_list:
+            next_cells = self.grid.get_cell_list_contents([coord])
+            # Verificar si todas las celdas están vacías
+            if not any(next_cells):
+                available_coord_list.append(coord)
+
+        if len(available_coord_list) > 0 and self.wait_to_spawn == 0:
+            coord_to_spawn = random.choice(available_coord_list)
+            end_coord = random.choice([(10, 0), (11, 0), (12, 0)])
+            auto = AgenteAuto(self.unique_id, self, (coord_to_spawn), (end_coord), 0, Grafo)
+            self.schedule.add(auto)
+            self.grid.place_agent(auto, (coord_to_spawn))
+            self.unique_id+=1
+            self.wait_to_spawn = 2
+
+#Spawnear autobus arriba a la izquierda
+        if self.wait_to_spawn_bus == 0:
+            p_inicial = (9, 42)
+            p_final = (9, 0)
+
+            metrobus = AgenteMetrobusB(self.unique_id, self, p_inicial, p_final, Grafo)
+            
+            self.schedule.add(metrobus)
+            self.grid.place_agent(metrobus, p_inicial)
+            self.unique_id+=1
             self.wait_to_spawn_bus = 100
 
-            
 
-        
-        self.wait_to_spawn -=1
-        self.wait_to_spawn_bus -=1
+
+
+
+        if self.wait_to_spawn > 0:
+            self.wait_to_spawn -=1
+
+        if self.wait_to_spawn_bus > 0:
+            self.wait_to_spawn_bus -=1
+
+        if self.wait_to_spawn_carro_aprovechado > 0:
+            self.wait_to_spawn_carro_aprovechado -= 1
         
         self.schedule.step()
-
         self.datacollector.collect(self)
-        self.schedule.step()
-   
         
+   
+        #print(self.lista_velocidades_bus)
 
 
         if total_llegado == 4:
@@ -722,26 +1068,75 @@ import matplotlib.pylab as plt
 import json
 
 import matplotlib.pyplot as plt
-modelo = ReformaModel(29, 43)
-for i in range(1, 500):
-    modelo.step()
-data = modelo.datacollector.get_model_vars_dataframe()
+resultados = {"TotalPasajerosAutos": [],
+              "TotalPasajerosBus": [],
+              "PromedioVelocidades": [],
+              "Multa": []}
+
+# Ejecuta la simulación N veces
+N = 30 # Cambia esto al número de veces que quieres ejecutar la simulación
+for _ in range(N):
+    modelo = ReformaModel(29, 43)
+    for i in range(1, 3000):
+        modelo.step()
+    data = modelo.datacollector.get_model_vars_dataframe()
+    # Añade los resultados de esta ejecución a la lista correspondiente en el diccionario de resultados
+    for var in resultados.keys():
+        resultados[var].append(data[var].values)
+
+# Calcula el promedio de los resultados para cada paso
+promedios = {var: np.mean(resultados[var], axis=0) for var in resultados.keys()}
 
 plt.figure(figsize=(10, 5))
-
 # Graficar TotalPasajerosAutos en color azul
-plt.plot(data['TotalPasajerosAutos'], color='blue', label='Autos')
-
+plt.plot(promedios['TotalPasajerosAutos'], color='blue', label='Autos')
 # Graficar TotalPasajerosBus en color rojo
-plt.plot(data['TotalPasajerosBus'], color='red', label='Bus')
-
-plt.title('Total de Pasajeros en Autos vs Bus')
+plt.plot(promedios['TotalPasajerosBus'], color='red', label='Metrobús')
+plt.title('Total de pasajeros que se trasladan en Autos vs Bus')
 plt.grid(True)
-
 # Añadir una leyenda
 plt.legend()
-
 plt.show()
+
+plt.figure(figsize=(10, 5))
+ultimo_valor_autos = promedios['TotalPasajerosAutos'][-1]
+ultimo_valor_bus = promedios['TotalPasajerosBus'][-1]
+
+ratio_auto_espacio = ultimo_valor_autos/127
+ratio_bus_espacio = ultimo_valor_bus/45
+
+categorias = ["Autos", "Metrobus"]
+valores = [ratio_auto_espacio, ratio_bus_espacio]
+plt.bar(categorias, valores)
+plt.title("Eficiencia de espacio: Total de personas trasladada/espacio")
+plt.xlabel("")
+plt.show()
+
+promedios_despues_500 = {key: value[500:] for key, value in promedios.items()}
+
+fig, ax1 = plt.subplots(figsize=(10, 5))
+
+# Graficar la primera serie de datos en el eje izquierdo
+ax1.plot(promedios_despues_500['PromedioVelocidades'], color='blue', label='Promedio de pasos que tada en avanzar el metrobús')
+ax1.set_ylabel('Tráfico en la linea del metrobús', color='blue')
+ax1.tick_params(axis='y', labelcolor='blue')
+
+# Crear un segundo eje y etiquetarlo para la serie de datos con diferentes unidades
+ax2 = ax1.twinx()  # Crear un eje gemelo
+ax2.plot(promedios_despues_500['Multa'], color='red', label='Multa')
+ax2.set_ylabel('Multa', color='red')
+ax2.tick_params(axis='y', labelcolor='red')
+
+# Añadir una leyenda combinada para ambas series
+lines_1, labels_1 = ax1.get_legend_handles_labels()
+lines_2, labels_2 = ax2.get_legend_handles_labels()
+lines = lines_1 + lines_2
+labels = labels_1 + labels_2
+ax1.legend(lines, labels, loc='best')
+plt.title("Tráfico en la linea del metrobus vs Multa")
+plt.grid(True)
+plt.show()
+
 
 
 def agent_portrayal(agent):
