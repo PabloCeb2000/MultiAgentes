@@ -5,30 +5,26 @@ import pandas as pd
 import matplotlib.pylab as plt
 import random
 import networkx as nx
-from diccionario_grafo import diccionario_glorieta, diccionario_abajo_derecha, diccionario_arriba_derecha, diccionario_metrobus_derecha
+from diccionario_grafo import diccionario_reforma, diccionario_reforma_spawneables
 
 Grafo = nx.DiGraph()
+contador_agentes = 0
+total_agentes = 0
 
 # Añadir nodos y sus nodos adyacentes desde diccionario
-for nodo, adyacentes in diccionario_glorieta.items():
+for nodo, adyacentes in diccionario_reforma.items():
     Grafo.add_node(nodo)
     for adyacente in adyacentes:
         Grafo.add_edge(nodo, adyacente, costo = 1.0)
 
-for nodo, adyacentes in diccionario_abajo_derecha.items():
-    Grafo.add_node(nodo)
-    for adyacente in adyacentes:
-        Grafo.add_edge(nodo, adyacente, costo = 1.0)
+pos_finales = [(2, 42), (1, 37),
+               (2, 32), (0, 20),
+               (3, 12), (1, 6),
+               (25, 41), (27, 35),
+               (27, 18), 
+               (26, 13), (28, 12),
+               (24, 1)]
 
-for nodo, adyacentes in diccionario_arriba_derecha.items():
-    Grafo.add_node(nodo)
-    for adyacente in adyacentes:
-        Grafo.add_edge(nodo, adyacente, costo = 1.0)
-
-for nodo, adyacentes in diccionario_metrobus_derecha.items():
-    Grafo.add_node(nodo)
-    for adyacente in adyacentes:
-        Grafo.add_edge(nodo, adyacente, costo = 1.0)
 
 def pasos_autos(model):
     pasos = []
@@ -44,6 +40,9 @@ def pasos_autos(model):
     
     return pasos
             
+def agentes_precentes(model):
+    return model.total_agentes_precentes
+
     
 
 class AgenteEdificio(mesa.Agent):
@@ -53,7 +52,7 @@ class AgenteEdificio(mesa.Agent):
         
         
 
-class AgenteSemaforoR(mesa.Agent):
+class AgenteSemaforoB(mesa.Agent):
     def __init__(self, unique_id, model, orient):
         super().__init__(unique_id, model)
         self.val = 6
@@ -154,6 +153,27 @@ class AgenteSemaforoR(mesa.Agent):
         if self.color == "Yellow":
             self.val = 6
 
+class AgenteSemaforoR(mesa.Agent):
+    def __init__(self, unique_id, model, vall):
+        super().__init__(unique_id, model)
+        self.val = 6
+        self.cambio = 0
+
+        if vall == 1:
+            self.val = 1
+        if vall == 2:
+            self.val = 2
+
+
+            
+    def step(self):
+        if self.cambio % 6 == 0:
+            if (self.val == 1):
+                self.val = 2
+            elif (self.val == 2):
+                self.val = 1
+
+        self.cambio += 1
 
         
 class AgenteGlorieta(mesa.Agent):
@@ -176,6 +196,11 @@ class AgenteMetrobus(mesa.Agent):
         super().__init__(unique_id, model)
         self.val = 4
 
+class AgenteEstacionamiento(mesa.Agent):
+    def __init__(self, unique_id, model):
+        super().__init__(unique_id, model)
+        self.val = 8
+
 class AgenteAuto(mesa.Agent):
     def __init__(self, unique_id, model, pos_inicial, pos_final, Grafoo):
         super().__init__(unique_id, model)
@@ -194,8 +219,6 @@ class AgenteAuto(mesa.Agent):
     def move(self, c, cambiarC):
         next_position = self.ruta[c]
 
-
-
         cellmates = self.model.grid.get_cell_list_contents([next_position])
 
         for agent in cellmates:
@@ -207,7 +230,7 @@ class AgenteAuto(mesa.Agent):
             if isinstance(agent, AgenteAuto):
                 self.contador -=1
                 return
-
+        """
         x, y = self.pos 
         celda_metrobus = self.model.grid.get_cell_list_contents([(x+1, y)])
 
@@ -226,10 +249,10 @@ class AgenteAuto(mesa.Agent):
             self.ruta = nx.shortest_path(self.graf, self.pos_inicial, self.pos_final)
             print(self.ruta)
             siEsCarril = False
-            self.contador = 0
+            self.contador = 0"""
 
-        else:
-            self.model.grid.move_agent(self, self.ruta[c])
+        
+        self.model.grid.move_agent(self, self.ruta[c])
 
 
 
@@ -240,6 +263,9 @@ class AgenteAuto(mesa.Agent):
             mover = random.random()
             self.move(c, mover)
             self.paso += 1
+
+        if self.pos == self.pos_final:
+            self.llegado = 1
 
         self.contador += 1
         
@@ -257,6 +283,7 @@ class AgenteMetrobusB(mesa.Agent):
         self.llegado = 0
         self.completaste = False
         self.movement = 0
+        
 
         self.ruta = nx.shortest_path(self.graf, self.pos_inicial, self.pos_final)
 
@@ -298,63 +325,62 @@ class AgenteMetrobusB(mesa.Agent):
         self.movement += 1
 
 
-        
-        
-
-
 class ReformaModel(mesa.Model):
     def __init__(self, width, height):
         self.schedule = mesa.time.RandomActivation(self)
         self.grid = mesa.space.MultiGrid(width, height, False)
         self.running = True
         self.m = 0
-        R = 0
+        self.R = 0
         self.primero = True
         self.esperar = 0
+        self.total_agentes = 0
+        self.total_agentes_precentes = 0
+        self.conteo_final = False
 
         mapa_Reforma = [['#', '#', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', ' ', '#', '#', '#'],
+                        ['#', '#', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', 'P', ' ', '#', '#', '#'],
                         ['#', '#', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', ' ', '#', '#', '#'],
                         ['#', '#', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', ' ', '#', '#', '#'],
                         ['#', '#', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', ' ', '#', '#', '#'],
                         ['#', '#', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', ' ', '#', '#', '#'],
-                        ['#', '#', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', ' ', '#', '#', '#'],
-                        ['#', '#', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', ' ', '#', '#', '#'],
+                        ['#', 'P', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', ' ', '#', '#', '#'],
                         [' ', ' ', ' ', ' ', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
                         [' ', ' ', ' ', ' ', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
                         ['#', '#', ' ', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', '#', ' ', '#', '#'],
                         ['#', '#', ' ', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', '#', ' ', '#', '#'],
                         ['#', '#', ' ', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-                        ['#', '#', ' ', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', '#', '#'],
-                        ['#', '#', ' ', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', ' ', '#', '#', '#'],
+                        ['#', '#', ' ', 'P', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', '#', 'P'],
+                        ['#', '#', ' ', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', ' ', 'P', '#', '#'],
                         ['#', '#', ' ', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', ' ', '#', '#', '#'],
                         ['#', '#', ' ', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', ' ', '#', '#', '#'],
                         [' ', ' ', ' ', ' ', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
                         [' ', ' ', ' ', ' ', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+                        ['#', ' ', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', 'P', '#'],
                         ['#', ' ', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', '#', '#'],
-                        ['#', ' ', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', '#', '#'],
-                        ['#', ' ', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', '#', '#'],
-                        ['#', ' ', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', '#', '#'],
-                        ['#', ' ', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-                        ['#', ' ', '#', '#', ' ', ' ', '#', '#', 'M', 'M', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'M', 'M', '#', '#', ' ', ' ', '#', '#', '#', '#', '#', '#'],
+                        ['P', ' ', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', '#', '#'],
+                        ['#', ' ', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', '/', '/', '/', 'M', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', '#', '#'],
+                        ['#', ' ', '#', '#', '/', '/', '#', '#', '#', 'M', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+                        ['#', ' ', '#', '#', ' ', ' ', '#', '#', 'M', 'M', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'M', 'M', '#', '#', '/', '/', '#', '#', '#', '#', '#', '#'],
                         ['#', ' ', '#', '#', ' ', ' ', ' ', ' ', 'M', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'M', ' ', ' ', ' ', ' ', '#', '#', '#', '#', '#', '#'],
-                        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'M', ' ', ' ', 'A', 'A', 'A', 'A', 'A', ' ', ' ', 'M', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-                        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'M', ' ', ' ', 'A', 'A', 'A', 'A', 'A', ' ', ' ', 'M', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+                        [' ', ' ', ' ', '-', ' ', ' ', ' ', ' ', 'M', ' ', ' ', 'A', 'A', 'A', 'A', 'A', ' ', ' ', 'M', ' ', ' ', ' ', ' ', '-', ' ', ' ', ' ', ' ', ' '],
+                        [' ', ' ', ' ', '-', ' ', ' ', ' ', ' ', 'M', ' ', ' ', 'A', 'A', 'A', 'A', 'A', ' ', ' ', 'M', ' ', ' ', ' ', ' ', '-', ' ', ' ', ' ', ' ', ' '],
                         ['C', 'C', 'C', 'C', ' ', ' ', ' ', ' ', 'M', ' ', ' ', 'A', 'A', 'X', 'A', 'A', ' ', ' ', 'M', ' ', ' ', ' ', ' ', 'C', 'C', 'C', 'C', 'C', 'C'],
-                        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'M', ' ', ' ', 'A', 'A', 'A', 'A', 'A', ' ', ' ', 'M', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-                        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'M', ' ', ' ', 'A', 'A', 'A', 'A', 'A', ' ', ' ', 'M', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+                        [' ', ' ', ' ', '-', ' ', ' ', ' ', ' ', 'M', ' ', ' ', 'A', 'A', 'A', 'A', 'A', ' ', ' ', 'M', ' ', ' ', ' ', ' ', '-', ' ', ' ', ' ', ' ', ' '],
+                        [' ', ' ', ' ', '-', ' ', ' ', ' ', ' ', 'M', ' ', ' ', 'A', 'A', 'A', 'A', 'A', ' ', ' ', 'M', ' ', ' ', ' ', ' ', '-', ' ', ' ', ' ', ' ', ' '],
                         ['#', '#', '#', '#', ' ', ' ', '#', '#', 'M', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'M', '#', '#', ' ', ' ', '#', '#', ' ', '#', '#', '#'],
                         ['#', '#', '#', '#', ' ', ' ', '#', '#', 'M', 'M', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'M', 'M', '#', '#', ' ', ' ', '#', '#', ' ', '#', '#', '#'],
-                        ['#', '#', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', ' ', '#', '#', '#'],
-                        [' ', ' ', ' ', ' ', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', ' ', ' ', ' ', '#', '#', '#'],
+                        ['#', '#', 'P', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', ' ', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', ' ', 'P', '#', '#'],
+                        [' ', ' ', ' ', ' ', ' ', ' ', '#', '#', '#', 'M', '/', '/', '/', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', ' ', ' ', ' ', '#', '#', '#'],
                         ['#', '#', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', '#', '#'],
-                        ['#', '#', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', '#', '#'],
+                        ['#', '#', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', '#', '#', 'P', '#'],
                         ['#', '#', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-                        ['#', '#', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+                        ['#', 'P', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
                         [' ', ' ', ' ', ' ', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', '#', ' ', '#', '#'],
                         [' ', ' ', ' ', ' ', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', '#', ' ', '#', '#'],
                         ['#', ' ', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', '#', ' ', '#', '#'],
-                        ['#', ' ', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', '#', ' ', '#', '#'],
-                        ['#', ' ', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', '#', ' ', '#', '#']]
+                        ['#', ' ', '#', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', 'P', ' ', '#', '#'],
+                        ['#', ' ', 'P', '#', ' ', ' ', '#', '#', '#', 'M', ' ', ' ', ' ', 'C', ' ', ' ', ' ', 'M', '#', '#', '#', ' ', ' ', '#', '#', '#', ' ', '#', '#']]
 
         n_i = 0
         n_j = 0
@@ -362,17 +388,17 @@ class ReformaModel(mesa.Model):
             for j in i:
 
                 if j == '#':
-                    r = AgenteEdificio(R, self)
+                    r = AgenteEdificio(self.R, self)
                     self.schedule.add(r)
 
                     x = n_j 
                     y = n_i
                     self.grid.place_agent(r, (x, y))
 
-                    R += 1
+                    self.R += 1
 
                 if j == 'M':
-                    r = AgenteMetrobus(R, self)
+                    r = AgenteMetrobus(self.R, self)
                     self.schedule.add(r)
 
                     x = n_j 
@@ -380,10 +406,10 @@ class ReformaModel(mesa.Model):
 
                     self.grid.place_agent(r, (x, y))
 
-                    R += 1
+                    self.R += 1
 
                 if j == 'C':
-                    r = AgenteCamellon(R, self)
+                    r = AgenteCamellon(self.R, self)
                     self.schedule.add(r)
 
                     x = n_j 
@@ -391,10 +417,10 @@ class ReformaModel(mesa.Model):
 
                     self.grid.place_agent(r, (x, y))
 
-                    R += 1
+                    self.R += 1
 
                 if j == 'A':
-                    r = AgenteGlorieta(R, self)
+                    r = AgenteGlorieta(self.R, self)
                     self.schedule.add(r)
 
                     x = n_j 
@@ -402,10 +428,10 @@ class ReformaModel(mesa.Model):
 
                     self.grid.place_agent(r, (x, y))
 
-                    R += 1
+                    self.R += 1
 
                 if j == 'X':
-                    r = AgenteAngel(R, self)
+                    r = AgenteAngel(self.R, self)
                     self.schedule.add(r)
 
                     x = n_j 
@@ -413,23 +439,92 @@ class ReformaModel(mesa.Model):
 
                     self.grid.place_agent(r, (x, y))
 
-                    R += 1
+                    self.R += 1
+
+                if j == 'N':
+                    r = AgenteSemaforoB(self.R, self, "Norte")
+                    self.schedule.add(r)
+
+                    x = n_j 
+                    y = n_i
+
+                    self.grid.place_agent(r, (x, y))
+
+                    self.R += 1
+
+                if j == 'S':
+                    r = AgenteSemaforoB(self.R, self, "Sur")
+                    self.schedule.add(r)
+
+                    x = n_j 
+                    y = n_i
+
+                    self.grid.place_agent(r, (x, y))
+
+                    self.R += 1
+
+                if j == 'O':
+                    r = AgenteSemaforoB(self.R, self, "Oeste")
+                    self.schedule.add(r)
+
+                    x = n_j 
+                    y = n_i
+
+                    self.grid.place_agent(r, (x, y))
+
+                    self.R += 1
+
+                if j == '/':
+                    col = 1
+                    r = AgenteSemaforoR(self.R, self, col)
+                    self.schedule.add(r)
+
+                    x = n_j 
+                    y = n_i
+
+                    self.grid.place_agent(r, (x, y))
+
+                    self.R += 1
+
+                if j == '-':
+                    col = 2
+                    r = AgenteSemaforoR(self.R, self, col)
+                    self.schedule.add(r)
+
+                    x = n_j 
+                    y = n_i
+
+                    self.grid.place_agent(r, (x, y))
+
+                    self.R += 1
  
+                if j == 'P':
+                    r = AgenteEstacionamiento(self.R, self)
+                    self.schedule.add(r)
+
+                    x = n_j 
+                    y = n_i
+
+                    self.grid.place_agent(r, (x, y))
+
+                    self.R += 1
                 n_j += 1
 
             n_j = 0
             n_i += 1
 
-        posiciones_pasadas = []
+        #contador_agentes = R
         
-        for i in range(1):        
-            p_inicial = (16, 0)
-            p_final = (16, 42)
-            j = R + 1 + i
-            #print(random.choice(diccionario_abajo_derecha))
-            """
+        for i in range(0):      
+            eleccion_1 = random.randint(0, 613)  
+
+            p_inicial = list(diccionario_reforma.keys())[eleccion_1]
+            p_final = random.choice(pos_finales)
+
+            j = self.R + 1 + i
+            """            
             while p_inicial in posiciones_pasadas:
-                p_inicial = random.choice(p_iniciales)"""
+                p_inicial = list(diccionario_reforma.keys())[random.randint(0, 684)]"""
 
             
             c = AgenteAuto(j, self, p_inicial, p_final, Grafo)
@@ -437,28 +532,14 @@ class ReformaModel(mesa.Model):
                 
             x = p_inicial[0]
             y = p_inicial[1]
+            print(x, y)
 
             self.grid.place_agent(c, (x, y))
-            R += 1
+            self.R += 1
 
-            #posiciones_pasadas.append(p_inicial)
-        
-        for i in range(0): 
-            j = R + 1 + i
-
-            p_inicial = (17, 8)
-            p_final = (17, 42)
-
-            c = AgenteMetrobusB(j, self, p_inicial, p_final, Grafo)
-            self.schedule.add(c)
-                
-
-            x = p_inicial[0]
-            y = p_inicial[1]
-            
-
-            self.grid.place_agent(c, (x, y))
-            R += 1
+        self.datacollector = mesa.DataCollector( 
+            model_reporters={"Agentes precentes": agentes_precentes},
+        )
 
     def get_agent_position(self):
         id_pos = []
@@ -496,33 +577,44 @@ class ReformaModel(mesa.Model):
         total_llegado = 0
         self.counttt = 0
 
+        if self.total_agentes < 50:
+            eleccion_1 = random.randint(0, 553)  
+
+            p_inicial = list(diccionario_reforma_spawneables.keys())[eleccion_1]
+            p_final = random.choice(pos_finales)
+
+            j = self.R + 1 
+    
+            c = AgenteAuto(j, self, p_inicial, p_final, Grafo)
+            self.schedule.add(c)
+                    
+            x = p_inicial[0]
+            y = p_inicial[1]
+            #print(x, y)
+
+            self.grid.place_agent(c, (x, y))
+            self.R += 1
+            
+            #posiciones_pasadas.append(p_inicial)
+            self.total_agentes += 1
+            self.total_agentes_precentes += 1
+
+        for agent in self.schedule.agents:
+                    if isinstance(agent, AgenteAuto):
+                        if agent.llegado == 1:
+                            total_llegado += 1
+                            self.schedule.remove(agent)
+                            self.grid.remove_agent(agent)
+                            self.total_agentes_precentes -= 1
+        
+
+        """
         if self.esperar == 0: 
 
+
+
             for agent in self.schedule.agents:
-                """
-                if isinstance(agent, AgenteAuto):
-                    if agent.llegado == 1:
-                        total_llegado += 1
-
-                    if agent.completaste == True:
-                        agent.pos_inicial == agent.pos_final
-                        agent.pos_final == agent.pos_inicial
-                        agent.ruta = nx.shortest_path(Grafo, agent.pos_inicial, agent.pos_final)
-                        agent.completaste = False
-
-                if isinstance(agent, AgenteMetrobusB):
-                    if agent.llegado == 1:
-                        total_llegado += 1
-
-                    if agent.completaste == True:
-                        agent.pos_inicial == agent.pos_final
-                        agent.pos_final == agent.pos_inicial
-                        agent.ruta = nx.shortest_path(Grafo, agent.pos_inicial, agent.pos_final)
-                        agent.completaste = False
-"""
-
-          
-
+                
                 if isinstance(agent, (AgenteSemaforoR)):
                     if agent.deteccion() == True and (agent.orientacion == "Norte" or agent.orientacion == "Sur"):
                         self.primero = False
@@ -536,10 +628,8 @@ class ReformaModel(mesa.Model):
                                 agent.color = "Rojo"
                             else:
                                 agent.color = "Verde"
-                        self.esperar = 10
-                    
+                        self.esperar = 5
                         
-
                     elif agent.deteccion() == True and (agent.orientacion == "Este" or agent.orientacion == "Oeste"):
                         self.primero = False
                         for agent in self.schedule.agents:
@@ -552,7 +642,8 @@ class ReformaModel(mesa.Model):
                                 agent.color = "Rojo"
                             else:
                                 agent.color = "Verde"
-                        self.esperar = 10
+                        self.esperar = 5
+                        
                                 
                     else:
                         if self.Vacios() == True:
@@ -562,16 +653,19 @@ class ReformaModel(mesa.Model):
 
 
                         self.counttt +=1
+                    
 
         if self.esperar > 0:
             self.esperar -= 1
 
-        
 
+"""
+        
         self.schedule.step()
-   
+        self.datacollector.collect(self)
+
+        if self.total_agentes_precentes == 0:
+            self.conteo_final = True
         
-
-
-        if total_llegado == 4:
+        if self.conteo_final == True:
             self.running = False
